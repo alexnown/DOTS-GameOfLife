@@ -1,0 +1,40 @@
+Assembly-CSharp-Editor.csproj
+Assembly-CSharp-firstpass.csproj
+Assembly-CSharp.csproj
+New Unity Project 1.sln
+wordArt_ios.sln
+wordArt_ios.userprefs
+wart.sln
+wart.userprefs
+# =============== #
+# Unity generated #
+# =============== #
+Temp/
+Obj/
+obj/
+UnityGenerated/
+Library/
+[Bb]uilds/
+Assets/Backups_local/
+[Aa]ssetBundles/
+Assets/[Bb]uildReports/
+Assets/[Ss]treamingAssets
+# ===================================== #
+# Visual Studio / MonoDevelop generated #
+# ===================================== #
+ExportedObj/
+*.svd
+*.userprefs
+*.csproj
+*.pidb
+*.suo
+*.sln
+*.user
+*.unityproj
+*.booproj
+*.DotSettings
+UnityVS.VersionSpecific.dll
+
+.idea.wart/
+.vs/
+.idea.wart - Unity/
