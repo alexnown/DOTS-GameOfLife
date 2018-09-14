@@ -1,4 +1,5 @@
-﻿using Unity.Burst;
+﻿using System;
+using Unity.Burst;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Entities;
@@ -6,52 +7,63 @@ using Unity.Jobs;
 
 namespace alexnown.EcsLife
 {
-    [DisableAutoCreation] [UpdateAfter(typeof(EndCellsUpdatesBarrier))]
+    [DisableAutoCreation]
+    [UpdateAfter(typeof(ApplyFutureStatesBarrier))]
     public class UpdateTextureColorsJobSystem : JobComponentSystem
     {
-        public bool TexturePrepared { get; private set; }
+        public bool TexturePrepared { get; private set; } = true;
+        public const int BATCHS_COUNT = 64;
+
         public NativeArray<byte> _textureColorsRGB;
-        private int _width;
-        private int _height;
+
+        private ComponentGroup _activeCellsDb;
 
         public void FillTargetArray(NativeArray<byte> colors, int width, int height)
         {
             _textureColorsRGB = colors;
-            _width = width;
-            _height = height;
-            Enabled = true;
             TexturePrepared = false;
         }
 
         protected override void OnCreateManager(int capacity)
         {
-            Enabled = false;
+            _activeCellsDb = GetComponentGroup(ComponentType.Create<ActiveState>(), ComponentType.Create<CellsDb>());
         }
 
         protected override JobHandle OnUpdate(JobHandle inputDeps)
         {
-            Enabled = false;
-            TexturePrepared = true;
-            return new UpdateTextureColors
+            if (!_textureColorsRGB.IsCreated || TexturePrepared) return inputDeps;
+            if (_activeCellsDb.CalculateLength() != 1) throw new InvalidOperationException($"Can't contains {_activeCellsDb.CalculateLength()} active cells db!");
+            var cellsDb = _activeCellsDb.GetSharedComponentDataArray<CellsDb>()[0];
+            int length = cellsDb.Cells.Length;
+            
+            var job = new UpdateTextureColors
             {
                 ColorsArray = _textureColorsRGB,
-                Width = _width
-            }.Schedule(this, inputDeps);
+                CellStates = cellsDb.Cells
+            }.ScheduleBatch(length, (length/BATCHS_COUNT +1), inputDeps);
+            job.Complete();
+            TexturePrepared = true;
+            return job;
         }
 
         [BurstCompile]
-        private struct UpdateTextureColors : IJobProcessComponentData<Position2D, CellStyle>
+        private struct UpdateTextureColors : IJobParallelForBatch
         {
-            public int Width;
             [NativeDisableContainerSafetyRestriction]
             public NativeArray<byte> ColorsArray;
 
-            public void Execute([ReadOnly] ref Position2D pos, [ReadOnly] ref CellStyle style)
+            public NativeArray<CellState> CellStates;
+
+            public void Execute(int startIndex, int count)
             {
-                int arrayIndex = Width * pos.Y + pos.X;
-                ColorsArray[3 * arrayIndex] = style.R;
-                ColorsArray[3 * arrayIndex + 1] = style.G;
-                ColorsArray[3 * arrayIndex + 2] = style.B;
+                for (int i = 0; i < count; i++)
+                {
+                    int realIndex = startIndex + i;
+                    var cellState = CellStates[realIndex];
+                    //ColorsArray[3*realIndex] = 0;//cellState.R;
+                    ColorsArray[3*realIndex + 1] = cellState.G;
+                    //ColorsArray[3*realIndex + 2] = 0;//cellState.B;
+                }
             }
         }
     }

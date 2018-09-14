@@ -1,7 +1,9 @@
-﻿using Unity.Burst;
+﻿using System;
+using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
+using UnityEngine;
 
 namespace alexnown.EcsLife
 {
@@ -9,86 +11,131 @@ namespace alexnown.EcsLife
     [UpdateBefore(typeof(EndCellsUpdatesBarrier))]
     public class UpdateCellsLifeRulesSystem : JobComponentSystem
     {
-        private ComponentGroup _cellsDbGroup;
-        [Inject]
-        private ComponentDataFromEntity<CellState> _cellStates;
+        public const int BATCHS_COUNT = 64;
+
+        private ComponentGroup _activeCellsDb;
+        private ComponentGroup _futureCellsDb;
 
         protected override void OnCreateManager(int capacity)
         {
-            _cellsDbGroup = GetComponentGroup(ComponentType.Create<CellsDb>());
+            _activeCellsDb = GetComponentGroup(ComponentType.Create<ActiveState>(), ComponentType.Create<CellsDb>());
+            _futureCellsDb = GetComponentGroup(ComponentType.Create<FutureState>(), ComponentType.Create<CellsDb>());
         }
 
         protected override JobHandle OnUpdate(JobHandle inputDeps)
         {
-            if (_cellsDbGroup.CalculateLength() == 0) return inputDeps;
-            var cellsDb = _cellsDbGroup.GetSharedComponentDataArray<CellsDb>()[0];
-            var cellEntities = cellsDb.Cells;
-            NativeArray<CellState> cellStates = new NativeArray<CellState>(cellEntities.Length, Allocator.TempJob);
-            for (int i = 0; i < cellEntities.Length; i++)
+            if (_activeCellsDb.CalculateLength() != 1) throw new InvalidOperationException($"Can't contains {_activeCellsDb.CalculateLength()} active cells db!");
+            if (_futureCellsDb.CalculateLength() != 1) throw new InvalidOperationException($"Can't contains {_futureCellsDb.CalculateLength()} future cells db!");
+            var activeCellsDb = _activeCellsDb.GetSharedComponentDataArray<CellsDb>()[0];
+            int length = activeCellsDb.Cells.Length;
+            return new UpdateCellsState
             {
-                cellStates[i] = _cellStates[cellEntities[i]];
+                Width = activeCellsDb.Width,
+                Height = activeCellsDb.Height,
+                ActiveCells = activeCellsDb.Cells,
+                FutureCellsState = _futureCellsDb.GetSharedComponentDataArray<CellsDb>()[0].Cells,
+                AliveState = new CellState { State = 1, G = Bootstrap.Settings.GreenColor }
+            }.ScheduleBatch(length, (length / BATCHS_COUNT + 1), inputDeps);
+        }
+
+        #region Job
+
+        struct Neighborns
+        {
+            public int LeftUp;
+            public int Up;
+            public int RightUp;
+            public int Right;
+            public int Left;
+            public int LeftDown;
+            public int Down;
+            public int RightDown;
+
+            public override string ToString()
+            {
+                return $"[{LeftUp} {Up} {RightUp} , {Left} x {Right}, {LeftDown} {Down} {RightDown}]";
             }
-            var job = new UpdateCellState
-            {
-                Width = cellsDb.Width,
-                Height = cellsDb.Height,
-                CellStates = cellStates,
-                AliceCell = new CellStyle { G = Bootstrap.Settings.GreenColor }
-            }.Schedule(this, inputDeps);
-            job.Complete();
-            cellStates.Dispose();
-            return job;
         }
 
         [BurstCompile]
-        struct UpdateCellState : IJobProcessComponentData<CellState, Position2D, CellStyle>
+        struct UpdateCellsState : IJobParallelForBatch
         {
+
+            [ReadOnly]
             public int Width;
+            [ReadOnly]
             public int Height;
             [ReadOnly]
-            public NativeArray<CellState> CellStates;
+            [NativeDisableParallelForRestriction]
+            public NativeArray<CellState> ActiveCells;
+            [WriteOnly]
+            [NativeDisableParallelForRestriction]
+            public NativeArray<CellState> FutureCellsState;
+            [ReadOnly]
+            public CellState AliveState;
 
-            public CellStyle AliceCell;
-            public CellStyle EmptyCell;
-
-            public void Execute(ref CellState state, [ReadOnly]ref Position2D position, ref CellStyle style)
+            public void Execute(int startIndex, int count)
             {
-                //int aliveNeighborsCount = 0;
-                //int cellsArrayPos = position.Y * Width + position.X;
-                //var leftNeighborIndex = CalcArrayIndex(position.X, position.Y, cellsArrayPos, -1, 0);
-                //var rightNeighborIndex = CalcArrayIndex(position.X, position.Y, cellsArrayPos, 1, 0);
-                //var upNeighborIndex = CalcArrayIndex(position.X, position.Y, cellsArrayPos, 0, 1);
-                //var downNeighborIndex = CalcArrayIndex(position.X, position.Y, cellsArrayPos, 0, -1);
+                int length = ActiveCells.Length;
+                for (int i = 0; i < count; i++)
+                {
+                    int index = startIndex + i;
+                    int posX = index % Width;
+                    int posY = index / Width;
+                    var neighbors = CalculateNeighborsOptimized(posX, posY, Width, Height, length);
+                    //bool wrongNeighbors = true;
+                    //neighbors.LeftUp > length || neighbors.Up > length ||
+                    //                      neighbors.RightUp > length || neighbors.Left > length || neighbors.Right > length ||
+                    //   neighbors.LeftDown > length || neighbors.Down > length || neighbors.RightDown > length;
+                    //if (wrongNeighbors) Debug.Log($"[{posX}, {posY}] neighbors=[{neighbors}]");
 
-                //aliveNeighborsCount += CellStates[leftNeighborIndex].State;
-                //aliveNeighborsCount += CellStates[rightNeighborIndex].State;
-                //aliveNeighborsCount += CellStates[upNeighborIndex].State;
-                //aliveNeighborsCount += CellStates[downNeighborIndex].State;
 
-                //bool isAlive = aliveNeighborsCount == 3 || (aliveNeighborsCount == 2 && state.State == 1);
-                //if (isAlive)
-                //{
-                //    state.State = 1;
-                //    style = AliceCell;
-                //}
-                //else
-                //{
-                //    state.State = 0;
-                //    style = EmptyCell;
-                //}
+                    int aliveNeighbors = 0;
+                    aliveNeighbors += ActiveCells[neighbors.LeftUp].State;
+                    aliveNeighbors += ActiveCells[neighbors.Up].State;
+                    aliveNeighbors += ActiveCells[neighbors.RightUp].State;
+                    aliveNeighbors += ActiveCells[neighbors.Left].State;
+                    aliveNeighbors += ActiveCells[neighbors.Right].State;
+                    aliveNeighbors += ActiveCells[neighbors.LeftDown].State;
+                    aliveNeighbors += ActiveCells[neighbors.Down].State;
+                    aliveNeighbors += ActiveCells[neighbors.RightDown].State;
+
+
+                    bool isAlive = aliveNeighbors == 3 || (aliveNeighbors == 2 && ActiveCells[index].State != 1);
+                    FutureCellsState[startIndex + i] = isAlive ? AliveState : new CellState();
+
+                    //FutureCellsState[index] = ActiveCells[index];
+                }
             }
 
-            public int CalcArrayIndex(int posX, int posY, int cellsArrayPos, int offsetX, int offsetY)
+
+
+            private Neighborns CalculateNeighborsOptimized(int posX, int posY, int width, int height, int length)
             {
-                int index = cellsArrayPos;
-                if (offsetX == -1) return posX > 0 ? (cellsArrayPos - 1) : (cellsArrayPos + Width - 1);
-                else if (offsetX == 1) return posX < Width - 1 ? (cellsArrayPos + 1) : (cellsArrayPos - Width + 1);
-                else if (offsetY == 1) return posY < Height - 1 ? (cellsArrayPos + Width) : posX;
-                else if (offsetY == -1) return posY > 0 ? (cellsArrayPos - Width) : (CellStates.Length - Width + posX);
-                //todo: do calc
-                return index;
+                int arrayIndex = posY * width + posX;
+                int indexTop = arrayIndex + width;
+                if (indexTop >= length) indexTop -= length;
+                int indexDown = arrayIndex - width;
+                if (indexDown < 0) indexDown += length;
+                int leftOffsetX = posX == 0 ? (width - 1) : -1;
+                int rightOffsetX = posX == width - 1 ? (1 - width) : 1;
+                
+                var neighbors = new Neighborns
+                {
+                    LeftUp = indexTop + leftOffsetX,
+                    Up = indexTop,
+                    RightUp = indexTop + rightOffsetX,
+                    Left = arrayIndex + leftOffsetX,
+                    Right = arrayIndex + rightOffsetX,
+                    LeftDown = indexDown + leftOffsetX,
+                    Down = indexDown,
+                    RightDown = indexDown + rightOffsetX
+                };
+                return neighbors;
             }
         }
+
+        #endregion
 
     }
 }

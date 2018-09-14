@@ -20,7 +20,7 @@ namespace alexnown.EcsLife
             {
                 Radius = Random.Range(8, 15),
                 Intensity = Random.Range(0.2f, 0.6f),
-                Style = new CellStyle { G = Bootstrap.Settings.GreenColor }
+                Style = new CellState { State = 1, G = Bootstrap.Settings.GreenColor }
             });
         }
     }

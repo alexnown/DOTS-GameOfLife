@@ -9,7 +9,7 @@ namespace alexnown.EcsLife
         [Inject] private EntityManager _entityManager;
         protected override void OnDestroyManager()
         {
-            List<CellsDb> cellsDbList = new List<CellsDb>(1);
+            List<CellsDb> cellsDbList = new List<CellsDb>();
             _entityManager.GetAllUniqueSharedComponentData(cellsDbList);
             for (int i = 0; i < cellsDbList.Count; i++)
             {

@@ -30,16 +30,14 @@ namespace alexnown.EcsLife
 
         protected override void OnUpdate()
         {
+            if(Bootstrap.CellsWorld==null) return;
             var generateTextureSystem = Bootstrap.CellsWorld.GetExistingManager<UpdateTextureColorsJobSystem>();
             if (generateTextureSystem == null) return;
 
-            bool waitWhilePrepareTexture = generateTextureSystem.Enabled && !generateTextureSystem.TexturePrepared;
+            bool waitWhilePrepareTexture = !generateTextureSystem.TexturePrepared;
             if(waitWhilePrepareTexture) return;
-            if (generateTextureSystem.TexturePrepared)
-            {
-                GeneratedTexture.LoadRawTextureData(_colors);
-                GeneratedTexture.Apply();
-            }
+            GeneratedTexture.LoadRawTextureData(_colors);
+            GeneratedTexture.Apply();
             generateTextureSystem.FillTargetArray(_colors, _textureWidth, _textureHeight);
         }
 

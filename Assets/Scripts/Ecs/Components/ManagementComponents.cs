@@ -7,6 +7,9 @@ namespace alexnown.EcsLife
     {
         public int Width;
         public int Height;
-        public NativeArray<Entity> Cells;
+        public NativeArray<CellState> Cells;
     }
+
+    public struct ActiveState : IComponentData { }
+    public struct FutureState : IComponentData { }
 }

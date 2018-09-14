@@ -1,4 +1,5 @@
 ﻿using System;
+using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
@@ -7,14 +8,16 @@ using UnityEngine;
 
 namespace alexnown.EcsLife
 {
+    [UpdateAfter(typeof(EndCellsUpdatesBarrier))]
+    [UpdateBefore(typeof(ApplyFutureStatesBarrier))]
     public class ApplySprayPointsToCells : JobComponentSystem
     {
-        public int Width;
-        public int Height;
         [Inject]
-        private EndCellsUpdatesBarrier _barrier;
+        private EndFrameBarrier _barrier;
 
         #region Job
+
+        [BurstCompile]
         struct ProcessSprayPoints : IJobProcessComponentDataWithEntity<SprayComponent, Position2D>
         {
             [ReadOnly]
@@ -23,8 +26,8 @@ namespace alexnown.EcsLife
             public int Width;
             [ReadOnly]
             public int Height;
-            [ReadOnly]
-            public NativeArray<Entity> CellEntities;
+            [WriteOnly][NativeDisableParallelForRestriction]
+            public NativeArray<CellState> CellStates;
             public EntityCommandBuffer.Concurrent CommandBuffer;
 
             public void Execute(Entity entity, int index, [ReadOnly]ref SprayComponent spray, [ReadOnly]ref Position2D pos)
@@ -45,9 +48,7 @@ namespace alexnown.EcsLife
                     if (inBounds)
                     {
                         int cellIndex = y * Width + x;
-                        var cellEntity = CellEntities[cellIndex];
-                        CommandBuffer.SetComponent(cellEntity, new CellState { State = 1 });
-                        CommandBuffer.SetComponent(cellEntity, spray.Style);
+                        CellStates[cellIndex] = spray.Style;
                     }
                 }
             }
@@ -57,7 +58,7 @@ namespace alexnown.EcsLife
         private ComponentGroup _cellsDb;
         protected override void OnCreateManager(int capacity)
         {
-            _cellsDb = GetComponentGroup(ComponentType.Create<CellsDb>());
+            _cellsDb = GetComponentGroup(ComponentType.Create<CellsDb>(), ComponentType.Create<FutureState>());
         }
 
         protected override JobHandle OnUpdate(JobHandle inputDeps)
@@ -67,9 +68,9 @@ namespace alexnown.EcsLife
             return new ProcessSprayPoints
             {
                 Frame = Time.frameCount,
-                Width = Width,
-                Height = Height,
-                CellEntities = cellsDb.Cells,
+                Width = cellsDb.Width,
+                Height = cellsDb.Height,
+                CellStates = cellsDb.Cells,
                 CommandBuffer = _barrier.CreateCommandBuffer()
             }.Schedule(this, inputDeps);
         }

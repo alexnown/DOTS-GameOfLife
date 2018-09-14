@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+using Assets.Scripts.Ecs.Systems;
 using Unity.Collections;
 using Unity.Entities;
 using UnityEngine;
@@ -28,7 +29,7 @@ namespace alexnown.EcsLife
         {
             var inputWorld = new World("Input");
             World.Active = inputWorld;
-            inputWorld.GetOrCreateManager<EntityManager>();
+            //inputWorld.GetOrCreateManager<EntityManager>();
             inputWorld.GetOrCreateManager<CreateSpraySourceFromInput>();
             var drawSystem = inputWorld.GetOrCreateManager<DrawCellsTextureSystem>();
             drawSystem.InitializeTexture(Screen.width, Screen.height);
@@ -43,17 +44,19 @@ namespace alexnown.EcsLife
             Height = Screen.height * Settings.ResolutionMultiplier;
 
             CellsWorld = new World("CellsWorld");
-            CellsWorld.GetOrCreateManager<UpdateCellsLifeRulesSystem>();
-            CellsWorld.GetOrCreateManager<DisposeCellsArrayOnDestroyWorld>();
+            CellsWorld.CreateManager<EndCellsUpdatesBarrier>();
+            CellsWorld.CreateManager<ApplyFutureStatesBarrier>();
+            CellsWorld.CreateManager<ApplyFutureStatesSystem>();
+            CellsWorld.CreateManager<UpdateCellsLifeRulesSystem>();
+            CellsWorld.CreateManager<DisposeCellsArrayOnDestroyWorld>();
+            CellsWorld.CreateManager<UpdateTextureColorsJobSystem>();
+            CellsWorld.CreateManager<ApplySprayPointsToCells>();
             var em = CellsWorld.GetOrCreateManager<EntityManager>();
-            CellsWorld.GetOrCreateManager<UpdateTextureColorsJobSystem>();
-            var applySprays = CellsWorld.GetOrCreateManager<ApplySprayPointsToCells>();
-            applySprays.Width = Width;
-            applySprays.Height = Height;
-            CellsWorld.GetOrCreateManager<EndCellsUpdatesBarrier>();
+            
 
+            /*
             var cells = new NativeArray<Entity>(Width * Height, Allocator.Persistent);
-            var cellArchetype = em.CreateArchetype(ComponentType.Create<CellState>(), ComponentType.Create<CellStyle>(),
+            var cellArchetype = em.CreateArchetype(ComponentType.Create<CellState>(), ComponentType.Create<CellState>(),
                 ComponentType.Create<Position2D>());
 
             em.CreateEntity(cellArchetype, cells);
@@ -62,10 +65,15 @@ namespace alexnown.EcsLife
                 var x = i % Width;
                 var y = i / Width;
                 em.SetComponentData(cells[i], new Position2D { X = x, Y = y });
-            }
+            } */
 
-            var cellsDb = em.CreateEntity(ComponentType.Create<CellsDb>());
-            em.SetSharedComponentData(cellsDb, new CellsDb { Width = Width, Height = Height, Cells = cells });
+            var futureCellsState = new NativeArray<CellState>(Width * Height, Allocator.Persistent);
+            var activeCellState = new NativeArray<CellState>(futureCellsState.Length, Allocator.Persistent);
+
+            var futureCellsDb = em.CreateEntity(ComponentType.Create<CellsDb>(), ComponentType.Create<FutureState>());
+            em.SetSharedComponentData(futureCellsDb, new CellsDb { Width = Width, Height = Height, Cells = futureCellsState });
+            var activeCellsDb = em.CreateEntity(ComponentType.Create<CellsDb>(), ComponentType.Create<ActiveState>());
+            em.SetSharedComponentData(activeCellsDb, new CellsDb { Width = Width, Height = Height, Cells = activeCellState });
         }
 
     }
