@@ -1,5 +1,4 @@
 ﻿using System.Linq;
-using Assets.Scripts.Ecs.Systems;
 using Unity.Collections;
 using Unity.Entities;
 using UnityEngine;
@@ -45,14 +44,13 @@ namespace alexnown.EcsLife
 
             CellsWorld = new World("CellsWorld");
             CellsWorld.CreateManager<EndCellsUpdatesBarrier>();
-            CellsWorld.CreateManager<ApplyFutureStatesBarrier>();
             CellsWorld.CreateManager<ApplyFutureStatesSystem>();
             CellsWorld.CreateManager<UpdateCellsLifeRulesSystem>();
             CellsWorld.CreateManager<DisposeCellsArrayOnDestroyWorld>();
             CellsWorld.CreateManager<UpdateTextureColorsJobSystem>();
             CellsWorld.CreateManager<ApplySprayPointsToCells>();
             var em = CellsWorld.GetOrCreateManager<EntityManager>();
-            
+
 
             /*
             var cells = new NativeArray<Entity>(Width * Height, Allocator.Persistent);
@@ -70,10 +68,8 @@ namespace alexnown.EcsLife
             var futureCellsState = new NativeArray<CellState>(Width * Height, Allocator.Persistent);
             var activeCellState = new NativeArray<CellState>(futureCellsState.Length, Allocator.Persistent);
 
-            var futureCellsDb = em.CreateEntity(ComponentType.Create<CellsDb>(), ComponentType.Create<FutureState>());
-            em.SetSharedComponentData(futureCellsDb, new CellsDb { Width = Width, Height = Height, Cells = futureCellsState });
-            var activeCellsDb = em.CreateEntity(ComponentType.Create<CellsDb>(), ComponentType.Create<ActiveState>());
-            em.SetSharedComponentData(activeCellsDb, new CellsDb { Width = Width, Height = Height, Cells = activeCellState });
+            var activeCellsDb = em.CreateEntity(ComponentType.Create<CellsDb>(), ComponentType.Create<CellsDbState>());
+            em.SetSharedComponentData(activeCellsDb, new CellsDb { Width = Width, Height = Height, CellsState0 = activeCellState, CellsState1 = futureCellsState });
         }
 
     }

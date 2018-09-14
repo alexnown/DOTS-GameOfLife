@@ -3,7 +3,6 @@ using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
-using UnityEngine;
 
 namespace alexnown.EcsLife
 {
@@ -14,28 +13,30 @@ namespace alexnown.EcsLife
         public const int BATCHS_COUNT = 64;
 
         private ComponentGroup _activeCellsDb;
-        private ComponentGroup _futureCellsDb;
 
         protected override void OnCreateManager(int capacity)
         {
-            _activeCellsDb = GetComponentGroup(ComponentType.Create<ActiveState>(), ComponentType.Create<CellsDb>());
-            _futureCellsDb = GetComponentGroup(ComponentType.Create<FutureState>(), ComponentType.Create<CellsDb>());
+            _activeCellsDb = GetComponentGroup(ComponentType.Create<CellsDbState>(), ComponentType.Create<CellsDb>());
         }
 
         protected override JobHandle OnUpdate(JobHandle inputDeps)
         {
             if (_activeCellsDb.CalculateLength() != 1) throw new InvalidOperationException($"Can't contains {_activeCellsDb.CalculateLength()} active cells db!");
-            if (_futureCellsDb.CalculateLength() != 1) throw new InvalidOperationException($"Can't contains {_futureCellsDb.CalculateLength()} future cells db!");
-            var activeCellsDb = _activeCellsDb.GetSharedComponentDataArray<CellsDb>()[0];
-            int length = activeCellsDb.Cells.Length;
-            return new UpdateCellsState
+            var cellsDb = _activeCellsDb.GetSharedComponentDataArray<CellsDb>()[0];
+            var cellsDbState = _activeCellsDb.GetComponentDataArray<CellsDbState>()[0];
+            var activeCells = cellsDbState.ActiveCellsState == 0 ? cellsDb.CellsState0 : cellsDb.CellsState1;
+            var futureCells = cellsDbState.ActiveCellsState != 0 ? cellsDb.CellsState0 : cellsDb.CellsState1;
+            int length = activeCells.Length;
+            var job = new UpdateCellsState
             {
-                Width = activeCellsDb.Width,
-                Height = activeCellsDb.Height,
-                ActiveCells = activeCellsDb.Cells,
-                FutureCellsState = _futureCellsDb.GetSharedComponentDataArray<CellsDb>()[0].Cells,
+                Width = cellsDb.Width,
+                Height = cellsDb.Height,
+                ActiveCells = activeCells,
+                FutureCellsState = futureCells,
                 AliveState = new CellState { State = 1, G = Bootstrap.Settings.GreenColor }
             }.ScheduleBatch(length, (length / BATCHS_COUNT + 1), inputDeps);
+            job.Complete();
+            return job;
         }
 
         #region Job

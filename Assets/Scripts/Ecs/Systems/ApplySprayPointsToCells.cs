@@ -9,7 +9,7 @@ using UnityEngine;
 namespace alexnown.EcsLife
 {
     [UpdateAfter(typeof(EndCellsUpdatesBarrier))]
-    [UpdateBefore(typeof(ApplyFutureStatesBarrier))]
+    [UpdateBefore(typeof(ApplyFutureStatesSystem))]
     public class ApplySprayPointsToCells : JobComponentSystem
     {
         [Inject]
@@ -58,19 +58,21 @@ namespace alexnown.EcsLife
         private ComponentGroup _cellsDb;
         protected override void OnCreateManager(int capacity)
         {
-            _cellsDb = GetComponentGroup(ComponentType.Create<CellsDb>(), ComponentType.Create<FutureState>());
+            _cellsDb = GetComponentGroup(ComponentType.Create<CellsDb>(), ComponentType.Create<CellsDbState>());
         }
 
         protected override JobHandle OnUpdate(JobHandle inputDeps)
         {
             if (_cellsDb.CalculateLength() == 0) return inputDeps;
             var cellsDb = _cellsDb.GetSharedComponentDataArray<CellsDb>()[0];
+            var cellsDbState = _cellsDb.GetComponentDataArray<CellsDbState>()[0];
+            var currCellsState = cellsDbState.ActiveCellsState != 0 ? cellsDb.CellsState0 : cellsDb.CellsState1;
             return new ProcessSprayPoints
             {
                 Frame = Time.frameCount,
                 Width = cellsDb.Width,
                 Height = cellsDb.Height,
-                CellStates = cellsDb.Cells,
+                CellStates = currCellsState,
                 CommandBuffer = _barrier.CreateCommandBuffer()
             }.Schedule(this, inputDeps);
         }

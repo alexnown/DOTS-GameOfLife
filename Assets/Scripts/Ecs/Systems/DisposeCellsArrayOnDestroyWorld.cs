@@ -3,7 +3,7 @@ using Unity.Entities;
 
 namespace alexnown.EcsLife
 {
-    [DisableAutoCreation]
+    [DisableAutoCreation] [UpdateAfter(typeof(EndFrameBarrier))]
     public class DisposeCellsArrayOnDestroyWorld : JobComponentSystem
     {
         [Inject] private EntityManager _entityManager;
@@ -13,9 +13,13 @@ namespace alexnown.EcsLife
             _entityManager.GetAllUniqueSharedComponentData(cellsDbList);
             for (int i = 0; i < cellsDbList.Count; i++)
             {
-                if (cellsDbList[i].Cells.IsCreated)
+                if (cellsDbList[i].CellsState0.IsCreated)
                 {
-                    cellsDbList[i].Cells.Dispose();
+                    cellsDbList[i].CellsState0.Dispose();
+                }
+                if (cellsDbList[i].CellsState1.IsCreated)
+                {
+                    cellsDbList[i].CellsState1.Dispose();
                 }
             }
             base.OnDestroyManager();

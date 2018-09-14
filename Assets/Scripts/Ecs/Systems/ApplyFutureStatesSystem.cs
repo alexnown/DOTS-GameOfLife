@@ -1,50 +1,68 @@
-﻿using System;
-using alexnown.EcsLife;
-using Unity.Burst;
+﻿using Unity.Burst;
 using Unity.Entities;
 using Unity.Jobs;
 
-namespace Assets.Scripts.Ecs.Systems
+namespace alexnown.EcsLife
 {
-    [UpdateBefore(typeof(ApplyFutureStatesBarrier))]
+
     public class ApplyFutureStatesSystem : JobComponentSystem
     {
-        private ComponentGroup _activeCellsDb;
-        private ComponentGroup _futureCellsDb;
+        [BurstCompile]
+        struct ApplyJob : IJobProcessComponentData<CellsDbState>
+        {
+            public void Execute(ref CellsDbState data)
+            {
+                data.ActiveCellsState = (data.ActiveCellsState + 1) % 2;
+            }
+        }
+
+        protected override JobHandle OnUpdate(JobHandle inputDeps)
+        {
+            var job = new ApplyJob().Schedule(this, inputDeps);
+            job.Complete();
+            return job;
+        }
+    }
+
+    /*
+    public class ApplyFutureStatesSystem : JobComponentSystem
+    {
         [Inject]
         private ApplyFutureStatesBarrier _barrier;
 
+        private ComponentGroup _group;
+
         protected override void OnCreateManager(int capacity)
         {
-            _activeCellsDb = GetComponentGroup(ComponentType.Create<ActiveState>(), ComponentType.Create<CellsDb>());
-            _futureCellsDb = GetComponentGroup(ComponentType.Create<FutureState>(), ComponentType.Create<CellsDb>());
+            _group = GetComponentGroup(ComponentType.Create<CellsDbState>());
         }
-        
+
+        //[BurstCompile]
         struct ApplyJob : IJob
         {
             public EntityCommandBuffer Cb;
-            public Entity ActiveDbEntity;
-            public Entity FutureDbEntity;
-
+            public ComponentDataArray<CellsDbState> States;
+            public EntityArray Entities;
+            
             public void Execute()
             {
-                Cb.RemoveComponent<ActiveState>(ActiveDbEntity);
-                Cb.AddComponent(ActiveDbEntity, new FutureState());
-                Cb.RemoveComponent<FutureState>(FutureDbEntity);
-                Cb.AddComponent(FutureDbEntity, new ActiveState());
+                for (int i = 0; i < Entities.Length; i++)
+                {
+                    int newState = (States[i].ActiveCellsState + 1) % 2;
+                    Cb.SetComponent(Entities[i], new CellsDbState { ActiveCellsState = newState });
+                }
             }
         }
-        
+
         protected override JobHandle OnUpdate(JobHandle inputDeps)
         {
-            if (_activeCellsDb.CalculateLength() != 1) throw new InvalidOperationException($"Can't contains {_activeCellsDb.CalculateLength()} active cells db!");
-            if (_futureCellsDb.CalculateLength() != 1) throw new InvalidOperationException($"Can't contains {_futureCellsDb.CalculateLength()} future cells db!");
             return new ApplyJob
             {
                 Cb = _barrier.CreateCommandBuffer(),
-                ActiveDbEntity = _activeCellsDb.GetEntityArray()[0],
-                FutureDbEntity = _futureCellsDb.GetEntityArray()[0]
+                States = _group.GetComponentDataArray<CellsDbState>(),
+                Entities = _group.GetEntityArray()
             }.Schedule(inputDeps);
         }
     }
+    */
 }
