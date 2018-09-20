@@ -19,8 +19,7 @@ namespace alexnown.EcsLife
             em.SetComponentData(sprayPoint, new SprayComponent
             {
                 Radius = Random.Range(8, 15),
-                Intensity = Random.Range(0.2f, 0.6f),
-                Style = new CellState { State = 1, G = Bootstrap.Settings.GreenColor }
+                Intensity = Random.Range(0.2f, 0.6f)
             });
         }
     }

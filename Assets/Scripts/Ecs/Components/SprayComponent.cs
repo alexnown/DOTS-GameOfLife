@@ -7,6 +7,5 @@ namespace alexnown.EcsLife
     {
         public int Radius;
         public float Intensity;
-        public CellState Style;
     }
 }

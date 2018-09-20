@@ -4,6 +4,7 @@ using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Entities;
 using Unity.Jobs;
+using UnityEngine;
 
 namespace alexnown.EcsLife
 {
@@ -11,16 +12,21 @@ namespace alexnown.EcsLife
     [UpdateAfter(typeof(ApplyFutureStatesSystem))]
     public class UpdateTextureColorsJobSystem : JobComponentSystem
     {
+        public const int BUTCH_COUNT = 1024;
         public bool TexturePrepared { get; private set; } = true;
-        public const int BATCHS_COUNT = 64;
+        public NativeArray<Color32> CellColorsByState; 
 
-        public NativeArray<byte> _textureColorsRGB;
+        private NativeArray<byte> _textureColorsRGB;
+        private int _width;
+        private int _height;
 
         private ComponentGroup _activeCellsDb;
 
         public void FillTargetArray(NativeArray<byte> colors, int width, int height)
         {
             _textureColorsRGB = colors;
+            _width = width;
+            _height = height;
             TexturePrepared = false;
         }
 
@@ -35,38 +41,61 @@ namespace alexnown.EcsLife
             if (_activeCellsDb.CalculateLength() != 1) throw new InvalidOperationException($"Can't contains {_activeCellsDb.CalculateLength()} active cells db!");
             var cellsDb = _activeCellsDb.GetSharedComponentDataArray<CellsDb>()[0];
             var cellsDbState = _activeCellsDb.GetComponentDataArray<CellsDbState>()[0];
-            var activeCells = cellsDbState.ActiveCellsState == 0 ? cellsDb.CellsState0 : cellsDb.CellsState1;
-            int length = activeCells.Length;
+            var activeCells = cellsDb.GetActiveCells(cellsDbState);
+            int length = _width * _height;
 
-            var job = new UpdateTextureColors
+            JobHandle job = inputDeps;
+            if (length == activeCells.Length)
             {
-                ColorsArray = _textureColorsRGB,
-                CellStates = activeCells
-            }.ScheduleBatch(length, (length / BATCHS_COUNT + 1), inputDeps);
+                job = new SetColorsNoResolutionMultiplier
+                {
+                    TextureColors = _textureColorsRGB,
+                    CellStates = activeCells,
+                    CellColorsByState = CellColorsByState
+                }.Schedule(length, BUTCH_COUNT, inputDeps);
+            }
+            else
+            {
+                throw new NotSupportedException();
+            }
+
             job.Complete();
             TexturePrepared = true;
             return job;
         }
-
+        
         [BurstCompile]
-        private struct UpdateTextureColors : IJobParallelForBatch
+        private struct SetColorsNoResolutionMultiplier : IJobParallelFor
+        {
+            [NativeDisableContainerSafetyRestriction]
+            public NativeArray<Color32> CellColorsByState;
+            [NativeDisableContainerSafetyRestriction]
+            public NativeArray<byte> TextureColors;
+            public NativeArray<CellState> CellStates;
+
+            public void Execute(int index)
+            {
+                var cellState = CellStates[index];
+                var color = CellColorsByState[cellState.State];
+                TextureColors[3 * index] = color.r;
+                TextureColors[3 * index + 1] = color.g;
+                TextureColors[3 * index + 2] = color.b;
+            }
+        }
+        /*
+        private struct SetColorsWithResolutionMultiplier : IJobParallelFor
         {
             [NativeDisableContainerSafetyRestriction]
             public NativeArray<byte> ColorsArray;
 
+            public int ResolutionMultiplier;
             public NativeArray<CellState> CellStates;
 
-            public void Execute(int startIndex, int count)
+            public void Execute(int index)
             {
-                for (int i = 0; i < count; i++)
-                {
-                    int realIndex = startIndex + i;
-                    var cellState = CellStates[realIndex];
-                    //ColorsArray[3*realIndex] = 0;//cellState.R;
-                    ColorsArray[3 * realIndex + 1] = cellState.G;
-                    //ColorsArray[3*realIndex + 2] = 0;//cellState.B;
-                }
+                var cellState = CellStates[index];
+                ColorsArray[3 * index + 1] = cellState.G;
             }
-        }
+        } */
     }
 }

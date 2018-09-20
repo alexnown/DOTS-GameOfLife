@@ -26,7 +26,8 @@ namespace alexnown.EcsLife
             public int Width;
             [ReadOnly]
             public int Height;
-            [WriteOnly][NativeDisableParallelForRestriction]
+            [WriteOnly]
+            [NativeDisableParallelForRestriction]
             public NativeArray<CellState> CellStates;
             public EntityCommandBuffer.Concurrent CommandBuffer;
 
@@ -48,7 +49,7 @@ namespace alexnown.EcsLife
                     if (inBounds)
                     {
                         int cellIndex = y * Width + x;
-                        CellStates[cellIndex] = spray.Style;
+                        CellStates[cellIndex] = new CellState { State = 1 };
                     }
                 }
             }

@@ -12,4 +12,4 @@ MonoBehaviour:
   m_Name: BootstrapSettings
   m_EditorClassIdentifier: 
   _resolutionMultiplier: 1
-  _greenColor: 255
+  _greenColor: 155

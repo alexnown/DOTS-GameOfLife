@@ -10,8 +10,6 @@ namespace alexnown.EcsLife
     [UpdateBefore(typeof(EndCellsUpdatesBarrier))]
     public class UpdateCellsLifeRulesSystem : JobComponentSystem
     {
-        public const int BATCHS_COUNT = 64;
-
         private ComponentGroup _activeCellsDb;
 
         protected override void OnCreateManager(int capacity)
@@ -24,17 +22,16 @@ namespace alexnown.EcsLife
             if (_activeCellsDb.CalculateLength() != 1) throw new InvalidOperationException($"Can't contains {_activeCellsDb.CalculateLength()} active cells db!");
             var cellsDb = _activeCellsDb.GetSharedComponentDataArray<CellsDb>()[0];
             var cellsDbState = _activeCellsDb.GetComponentDataArray<CellsDbState>()[0];
-            var activeCells = cellsDbState.ActiveCellsState == 0 ? cellsDb.CellsState0 : cellsDb.CellsState1;
-            var futureCells = cellsDbState.ActiveCellsState != 0 ? cellsDb.CellsState0 : cellsDb.CellsState1;
+            var activeCells = cellsDb.GetActiveCells(cellsDbState);
+            var futureCells = cellsDb.GetFutureCells(cellsDbState);
             int length = activeCells.Length;
             var job = new UpdateCellsState
             {
                 Width = cellsDb.Width,
                 Height = cellsDb.Height,
                 ActiveCells = activeCells,
-                FutureCellsState = futureCells,
-                AliveState = new CellState { State = 1, G = Bootstrap.Settings.GreenColor }
-            }.ScheduleBatch(length, (length / BATCHS_COUNT + 1), inputDeps);
+                FutureCellsState = futureCells
+            }.Schedule(length, 2048, inputDeps);
             job.Complete();
             return job;
         }
@@ -59,7 +56,7 @@ namespace alexnown.EcsLife
         }
 
         [BurstCompile]
-        struct UpdateCellsState : IJobParallelForBatch
+        struct UpdateCellsState : IJobParallelFor
         {
 
             [ReadOnly]
@@ -72,44 +69,6 @@ namespace alexnown.EcsLife
             [WriteOnly]
             [NativeDisableParallelForRestriction]
             public NativeArray<CellState> FutureCellsState;
-            [ReadOnly]
-            public CellState AliveState;
-
-            public void Execute(int startIndex, int count)
-            {
-                int length = ActiveCells.Length;
-                for (int i = 0; i < count; i++)
-                {
-                    int index = startIndex + i;
-                    int posX = index % Width;
-                    int posY = index / Width;
-                    var neighbors = CalculateNeighborsOptimized(posX, posY, Width, Height, length);
-                    //bool wrongNeighbors = true;
-                    //neighbors.LeftUp > length || neighbors.Up > length ||
-                    //                      neighbors.RightUp > length || neighbors.Left > length || neighbors.Right > length ||
-                    //   neighbors.LeftDown > length || neighbors.Down > length || neighbors.RightDown > length;
-                    //if (wrongNeighbors) Debug.Log($"[{posX}, {posY}] neighbors=[{neighbors}]");
-
-
-                    int aliveNeighbors = 0;
-                    aliveNeighbors += ActiveCells[neighbors.LeftUp].State;
-                    aliveNeighbors += ActiveCells[neighbors.Up].State;
-                    aliveNeighbors += ActiveCells[neighbors.RightUp].State;
-                    aliveNeighbors += ActiveCells[neighbors.Left].State;
-                    aliveNeighbors += ActiveCells[neighbors.Right].State;
-                    aliveNeighbors += ActiveCells[neighbors.LeftDown].State;
-                    aliveNeighbors += ActiveCells[neighbors.Down].State;
-                    aliveNeighbors += ActiveCells[neighbors.RightDown].State;
-
-
-                    bool isAlive = aliveNeighbors == 3 || (aliveNeighbors == 2 && ActiveCells[index].State != 1);
-                    FutureCellsState[startIndex + i] = isAlive ? AliveState : new CellState();
-
-                    //FutureCellsState[index] = ActiveCells[index];
-                }
-            }
-
-
 
             private Neighborns CalculateNeighborsOptimized(int posX, int posY, int width, int height, int length)
             {
@@ -120,7 +79,7 @@ namespace alexnown.EcsLife
                 if (indexDown < 0) indexDown += length;
                 int leftOffsetX = posX == 0 ? (width - 1) : -1;
                 int rightOffsetX = posX == width - 1 ? (1 - width) : 1;
-                
+
                 var neighbors = new Neighborns
                 {
                     LeftUp = indexTop + leftOffsetX,
@@ -133,6 +92,28 @@ namespace alexnown.EcsLife
                     RightDown = indexDown + rightOffsetX
                 };
                 return neighbors;
+            }
+
+            public void Execute(int index)
+            {
+                int posX = index % Width;
+                int posY = index / Width;
+                var neighbors = CalculateNeighborsOptimized(posX, posY, Width, Height, ActiveCells.Length);
+
+                int aliveNeighbors = 0;
+                aliveNeighbors += ActiveCells[neighbors.LeftUp].State;
+                aliveNeighbors += ActiveCells[neighbors.Up].State;
+                aliveNeighbors += ActiveCells[neighbors.RightUp].State;
+                aliveNeighbors += ActiveCells[neighbors.Left].State;
+                aliveNeighbors += ActiveCells[neighbors.Right].State;
+                aliveNeighbors += ActiveCells[neighbors.LeftDown].State;
+                aliveNeighbors += ActiveCells[neighbors.Down].State;
+                aliveNeighbors += ActiveCells[neighbors.RightDown].State;
+
+
+                bool isAlive = aliveNeighbors == 3 || aliveNeighbors == 2;
+                var state = new CellState { State = isAlive ? (byte)1 : (byte)0 };
+                FutureCellsState[index] = state;
             }
         }
 

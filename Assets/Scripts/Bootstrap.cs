@@ -47,11 +47,16 @@ namespace alexnown.EcsLife
             CellsWorld.CreateManager<ApplyFutureStatesSystem>();
             CellsWorld.CreateManager<UpdateCellsLifeRulesSystem>();
             CellsWorld.CreateManager<DisposeCellsArrayOnDestroyWorld>();
-            CellsWorld.CreateManager<UpdateTextureColorsJobSystem>();
+            var paintTexture = CellsWorld.CreateManager<UpdateTextureColorsJobSystem>();
             CellsWorld.CreateManager<ApplySprayPointsToCells>();
             var em = CellsWorld.GetOrCreateManager<EntityManager>();
 
 
+            var colors = new NativeArray<Color32>(3, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+            colors[0] = new Color32();
+            colors[1] = new Color32(0, Settings.GreenColor, 0, 0);
+            colors[2] = new Color32(0, (byte) (Settings.GreenColor / 2), 0, 0);
+            paintTexture.CellColorsByState = colors;
             /*
             var cells = new NativeArray<Entity>(Width * Height, Allocator.Persistent);
             var cellArchetype = em.CreateArchetype(ComponentType.Create<CellState>(), ComponentType.Create<CellState>(),
