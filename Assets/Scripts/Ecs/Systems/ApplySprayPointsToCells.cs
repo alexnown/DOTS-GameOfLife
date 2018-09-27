@@ -33,7 +33,7 @@ namespace alexnown.EcsLife
 
             public void Execute(Entity entity, int index, [ReadOnly]ref SprayComponent spray, [ReadOnly]ref Position2D pos)
             {
-                CommandBuffer.DestroyEntity(entity);
+                CommandBuffer.DestroyEntity(0, entity);
 
                 var random = new Unity.Mathematics.Random((uint)(UInt32.MaxValue - Frame - index));
                 int points = (int)(spray.Intensity * math.PI * math.pow(spray.Radius, 2));
@@ -57,7 +57,7 @@ namespace alexnown.EcsLife
         #endregion
 
         private ComponentGroup _cellsDb;
-        protected override void OnCreateManager(int capacity)
+        protected override void OnCreateManager()
         {
             _cellsDb = GetComponentGroup(ComponentType.Create<CellsDb>(), ComponentType.Create<CellsDbState>());
         }
@@ -74,7 +74,7 @@ namespace alexnown.EcsLife
                 Width = cellsDb.Width,
                 Height = cellsDb.Height,
                 CellStates = currCellsState,
-                CommandBuffer = _barrier.CreateCommandBuffer()
+                CommandBuffer = _barrier.CreateCommandBuffer().ToConcurrent()
             }.Schedule(this, inputDeps);
         }
     }

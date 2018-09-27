@@ -12,56 +12,42 @@ namespace alexnown.EcsLife
     [UpdateAfter(typeof(ApplyFutureStatesSystem))]
     public class UpdateTextureColorsJobSystem : JobComponentSystem
     {
-        public const int BUTCH_COUNT = 1024;
-        public bool TexturePrepared { get; private set; } = true;
-        public NativeArray<Color32> CellColorsByState; 
+        
+        public NativeArray<Color32> CellColorsByState;
 
-        private NativeArray<byte> _textureColorsRGB;
-        private int _width;
-        private int _height;
+        [Inject] private EndFrameBarrier _barrier;
 
         private ComponentGroup _activeCellsDb;
-
-        public void FillTargetArray(NativeArray<byte> colors, int width, int height)
-        {
-            _textureColorsRGB = colors;
-            _width = width;
-            _height = height;
-            TexturePrepared = false;
-        }
-
-        protected override void OnCreateManager(int capacity)
+        private ComponentGroup _drawRequests;
+        
+        protected override void OnCreateManager()
         {
             _activeCellsDb = GetComponentGroup(ComponentType.Create<CellsDbState>(), ComponentType.Create<CellsDb>());
+            _drawRequests = GetComponentGroup(ComponentType.Create<DrawStateRequest>());
         }
 
         protected override JobHandle OnUpdate(JobHandle inputDeps)
         {
-            if (!_textureColorsRGB.IsCreated || TexturePrepared) return inputDeps;
+            if (_drawRequests.CalculateLength() == 0) return inputDeps;
             if (_activeCellsDb.CalculateLength() != 1) throw new InvalidOperationException($"Can't contains {_activeCellsDb.CalculateLength()} active cells db!");
             var cellsDb = _activeCellsDb.GetSharedComponentDataArray<CellsDb>()[0];
             var cellsDbState = _activeCellsDb.GetComponentDataArray<CellsDbState>()[0];
             var activeCells = cellsDb.GetActiveCells(cellsDbState);
-            int length = _width * _height;
 
-            JobHandle job = inputDeps;
-            if (length == activeCells.Length)
+            var requests = _drawRequests.GetSharedComponentDataArray<DrawStateRequest>();
+            var requestEntities = _drawRequests.GetEntityArray();
+            for (int i = 0; i < requests.Length; i++)
             {
-                job = new SetColorsNoResolutionMultiplier
+                //_barrier.PostUpdateCommands.DestroyEntity(requestEntities[i]);
+                return  new SetColorsNoResolutionMultiplier
                 {
-                    TextureColors = _textureColorsRGB,
+                    TextureColors = requests[i].Colors,
                     CellStates = activeCells,
                     CellColorsByState = CellColorsByState
-                }.Schedule(length, BUTCH_COUNT, inputDeps);
+                }.Schedule(activeCells.Length, 1024*8, inputDeps);
             }
-            else
-            {
-                throw new NotSupportedException();
-            }
-
-            job.Complete();
-            TexturePrepared = true;
-            return job;
+            
+            return inputDeps;
         }
         
         [BurstCompile]
@@ -82,20 +68,5 @@ namespace alexnown.EcsLife
                 TextureColors[3 * index + 2] = color.b;
             }
         }
-        /*
-        private struct SetColorsWithResolutionMultiplier : IJobParallelFor
-        {
-            [NativeDisableContainerSafetyRestriction]
-            public NativeArray<byte> ColorsArray;
-
-            public int ResolutionMultiplier;
-            public NativeArray<CellState> CellStates;
-
-            public void Execute(int index)
-            {
-                var cellState = CellStates[index];
-                ColorsArray[3 * index + 1] = cellState.G;
-            }
-        } */
     }
 }

@@ -13,3 +13,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _resolutionMultiplier: 1
   _greenColor: 155
+  _initializeManualUpdate: 0
+  _maxWorldsUpdatesLimit: 75
+  _maxWorldsUpdatesTimeLimitSec: 0.1

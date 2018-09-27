@@ -7,10 +7,6 @@ namespace alexnown.EcsLife
 {
     public static class Bootstrap
     {
-        public static World CellsWorld { get; private set; }
-        public static int Width { get; private set; }
-        public static int Height { get; private set; }
-
         public static BootstrapSettings Settings { get; private set; }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -20,16 +16,25 @@ namespace alexnown.EcsLife
 
             World.DisposeAllWorlds();
             InitializeInputWorld();
-            InitializeCellsWorld();
-            ScriptBehaviourUpdateOrder.UpdatePlayerLoop(World.AllWorlds.ToArray());
+            var cellsWorld = InitializeCellsWorld();
+            var em = World.Active.GetOrCreateManager<EntityManager>();
+            em.AddSharedComponentData(em.CreateEntity(), cellsWorld);
+
+            if (Settings.InitializeManualUpdate)
+            {
+                var autoUpdate = World.Active.GetOrCreateManager<UpdateCellWorldsSystem>();
+                autoUpdate.MaxTimeLimitSec = () => Settings.MaxWorldsUpdatesTimeLimitSec;
+                autoUpdate.MaxUpdatesLimit = () => Settings.MaxWorldsUpdatesLimit;
+                ScriptBehaviourUpdateOrder.UpdatePlayerLoop(World.Active);
+            }
+            else ScriptBehaviourUpdateOrder.UpdatePlayerLoop(World.AllWorlds.ToArray());
         }
 
         private static void InitializeInputWorld()
         {
             var inputWorld = new World("Input");
             World.Active = inputWorld;
-            //inputWorld.GetOrCreateManager<EntityManager>();
-            inputWorld.GetOrCreateManager<CreateSpraySourceFromInput>();
+            inputWorld.CreateManager<CreateSpraySourceFromInput>();
             var drawSystem = inputWorld.GetOrCreateManager<DrawCellsTextureSystem>();
             drawSystem.InitializeTexture(Screen.width, Screen.height);
 
@@ -37,44 +42,45 @@ namespace alexnown.EcsLife
             drawer.RecieveTexture = () => drawSystem.GeneratedTexture;
         }
 
-        private static void InitializeCellsWorld()
+        private static CellsWorld InitializeCellsWorld()
         {
-            Width = Screen.width * Settings.ResolutionMultiplier;
-            Height = Screen.height * Settings.ResolutionMultiplier;
+            var world = new World("CellWorld");
+            int width = Screen.width * Settings.ResolutionMultiplier;
+            int height = Screen.height * Settings.ResolutionMultiplier;
 
-            CellsWorld = new World("CellsWorld");
-            CellsWorld.CreateManager<EndCellsUpdatesBarrier>();
-            CellsWorld.CreateManager<ApplyFutureStatesSystem>();
-            CellsWorld.CreateManager<UpdateCellsLifeRulesSystem>();
-            CellsWorld.CreateManager<DisposeCellsArrayOnDestroyWorld>();
-            var paintTexture = CellsWorld.CreateManager<UpdateTextureColorsJobSystem>();
-            CellsWorld.CreateManager<ApplySprayPointsToCells>();
-            var em = CellsWorld.GetOrCreateManager<EntityManager>();
-
+            world.CreateManager<EndCellsUpdatesBarrier>();
+            world.CreateManager<ApplyFutureStatesSystem>();
+            world.CreateManager<UpdateCellsLifeRulesSystem>();
+            world.CreateManager<DisposeCellsArrayOnDestroyWorld>();
+            var paintTexture = world.CreateManager<UpdateTextureColorsJobSystem>();
+            world.CreateManager<ApplySprayPointsToCells>();
+            var em = world.GetOrCreateManager<EntityManager>();
 
             var colors = new NativeArray<Color32>(3, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
             colors[0] = new Color32();
             colors[1] = new Color32(0, Settings.GreenColor, 0, 0);
-            colors[2] = new Color32(0, (byte) (Settings.GreenColor / 2), 0, 0);
+            colors[2] = new Color32(0, (byte)(Settings.GreenColor / 2), 0, 0);
             paintTexture.CellColorsByState = colors;
-            /*
-            var cells = new NativeArray<Entity>(Width * Height, Allocator.Persistent);
-            var cellArchetype = em.CreateArchetype(ComponentType.Create<CellState>(), ComponentType.Create<CellState>(),
-                ComponentType.Create<Position2D>());
 
-            em.CreateEntity(cellArchetype, cells);
-            for (int i = 0; i < cells.Length; i++)
-            {
-                var x = i % Width;
-                var y = i / Width;
-                em.SetComponentData(cells[i], new Position2D { X = x, Y = y });
-            } */
-
-            var futureCellsState = new NativeArray<CellState>(Width * Height, Allocator.Persistent);
+            var futureCellsState = new NativeArray<CellState>(width * height, Allocator.Persistent);
             var activeCellState = new NativeArray<CellState>(futureCellsState.Length, Allocator.Persistent);
 
             var activeCellsDb = em.CreateEntity(ComponentType.Create<CellsDb>(), ComponentType.Create<CellsDbState>());
-            em.SetSharedComponentData(activeCellsDb, new CellsDb { Width = Width, Height = Height, CellsState0 = activeCellState, CellsState1 = futureCellsState });
+            var cellsDb = new CellsDb
+            {
+                Width = width,
+                Height = height,
+                CellsState0 = activeCellState,
+                CellsState1 = futureCellsState
+            };
+            em.SetSharedComponentData(activeCellsDb, cellsDb);
+
+            return new CellsWorld
+            {
+                Width = width,
+                Height = height,
+                World = world
+            };
         }
 
     }

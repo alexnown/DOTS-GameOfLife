@@ -3,6 +3,15 @@ using Unity.Entities;
 
 namespace alexnown.EcsLife
 {
+    public struct CellsWorld : ISharedComponentData
+    {
+        public World World;
+        public int Width;
+        public int Height;
+    }
+
+    
+
     public struct CellsDb : ISharedComponentData
     {
         public int Width;
@@ -19,6 +28,13 @@ namespace alexnown.EcsLife
         {
             return state.ActiveCellsState != 0 ? CellsState0 : CellsState1;
         }
+    }
+
+    public struct DrawStateRequest : ISharedComponentData
+    {
+        public int Width;
+        public int Height;
+        public NativeArray<byte> Colors;
     }
 
     public struct CellsDbState : IComponentData

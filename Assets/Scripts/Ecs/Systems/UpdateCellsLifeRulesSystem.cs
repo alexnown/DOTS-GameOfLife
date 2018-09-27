@@ -12,7 +12,7 @@ namespace alexnown.EcsLife
     {
         private ComponentGroup _activeCellsDb;
 
-        protected override void OnCreateManager(int capacity)
+        protected override void OnCreateManager()
         {
             _activeCellsDb = GetComponentGroup(ComponentType.Create<CellsDbState>(), ComponentType.Create<CellsDb>());
         }
