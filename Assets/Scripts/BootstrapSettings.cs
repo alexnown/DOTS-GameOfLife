@@ -10,7 +10,7 @@ namespace alexnown.EcsLife
 
         public bool InitializeManualUpdate => _initializeManualUpdate;
         public int MaxWorldsUpdatesLimit => _maxWorldsUpdatesLimit;
-        public float MaxWorldsUpdatesTimeLimitSec => _maxWorldsUpdatesTimeLimitSec;
+        public int PreferedFps => _preferedFps;
 
         [Range(1, 20)]
         [SerializeField]
@@ -23,9 +23,10 @@ namespace alexnown.EcsLife
         [SerializeField]
         private bool _initializeManualUpdate;
         [SerializeField]
-        private int _maxWorldsUpdatesLimit = 50;
+        private int _maxWorldsUpdatesLimit = 100;
         [SerializeField]
-        private float _maxWorldsUpdatesTimeLimitSec = 0.5f;
+        [Range(1, 60)]
+        private int _preferedFps = 20;
     }
 }
 

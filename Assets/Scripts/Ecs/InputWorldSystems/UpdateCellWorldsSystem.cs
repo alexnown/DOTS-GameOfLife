@@ -6,11 +6,18 @@ namespace alexnown.EcsLife
 {
     public class UpdateCellWorldsSystem : ComponentSystem
     {
-        public Func<float> MaxTimeLimitSec = () => 1f;
-        public Func<int> MaxUpdatesLimit = () => 1000;
+        public static long TotalUpdates;
+        public static float TotalTime;
+        public static float UpdatesSpeed;
+
+
+        public float MaxTimeLimitSec = 0.1f;
+        public int MaxUpdatesForFrame = 1000;
         public int LastUpdatesCount { get; private set; }
 
         private ComponentGroup _worlds;
+        private float UpdatesTime;
+        private int UpdatesCount;
         protected override void OnCreateManager()
         {
             _worlds = GetComponentGroup(ComponentType.Create<CellsWorld>());
@@ -18,33 +25,38 @@ namespace alexnown.EcsLife
 
         protected override void OnUpdate()
         {
+            UpdateSpeedStatistic();
+            LastUpdatesCount = 0;
+
             var worlds = _worlds.GetSharedComponentDataArray<CellsWorld>();
             var startTime = DateTime.Now;
-            float maxTimeLimit = MaxTimeLimitSec.Invoke();
-            int updateCountLimit = MaxUpdatesLimit.Invoke();
-            LastUpdatesCount = 0;
             while (true)
             {
                 for (int i = 0; i < worlds.Length; i++)
                 {
-                    foreach (var systems in worlds[i].World.BehaviourManagers)
-                    {
-                        systems.Update();
-                    }
+                    worlds[i].World.GetExistingManager<UpdateCellsLifeRulesSystem>().Update();
+                    worlds[i].World.GetExistingManager<ApplySprayPointsToCells>().Update();
+                    worlds[i].World.GetExistingManager<ApplyFutureStatesSystem>().Update();
                 }
                 LastUpdatesCount++;
-                if (LastUpdatesCount >= updateCountLimit || DateTime.Now.Subtract(startTime).TotalSeconds > maxTimeLimit) break;
+                if (LastUpdatesCount >= MaxUpdatesForFrame || DateTime.Now.Subtract(startTime).TotalSeconds > MaxTimeLimitSec) break;
             }
+
             Debug.Log($"Cell worlds updated {LastUpdatesCount} times.");
         }
-        /*
-        protected override void OnDestroyManager()
+
+        private void UpdateSpeedStatistic()
         {
-            var worlds = _worlds.GetSharedComponentDataArray<CellsWorld>();
-            for (int i = 0; i < worlds.Length; i++)
+            TotalUpdates += LastUpdatesCount;
+            TotalTime += Time.deltaTime;
+            UpdatesCount += LastUpdatesCount;
+            UpdatesTime += Time.deltaTime;
+            if (UpdatesTime >= 1)
             {
-                if(worlds[i].World.IsCreated) worlds[i].World.Dispose();
+                UpdatesSpeed = UpdatesCount / UpdatesTime;
+                UpdatesCount = 0;
+                UpdatesTime = 0;
             }
-        } */
+        }
     }
 }

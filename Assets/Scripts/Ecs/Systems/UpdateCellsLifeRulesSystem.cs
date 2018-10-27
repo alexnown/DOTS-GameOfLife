@@ -17,6 +17,19 @@ namespace alexnown.EcsLife
             _activeCellsDb = GetComponentGroup(ComponentType.Create<CellsDbState>(), ComponentType.Create<CellsDb>());
         }
 
+        /*
+        protected override void OnDestroyManager()
+        {
+            var cellDbs = _activeCellsDb.GetSharedComponentDataArray<CellsDb>();
+            for (int i = 0; i < cellDbs.Length; i++)
+            {
+                var cellDb = cellDbs[i];
+                cellDb.CellsState0.Dispose();
+                cellDb.CellsState1.Dispose();
+            }
+            base.OnDestroyManager();
+        } */
+
         protected override JobHandle OnUpdate(JobHandle inputDeps)
         {
             if (_activeCellsDb.CalculateLength() != 1) throw new InvalidOperationException($"Can't contains {_activeCellsDb.CalculateLength()} active cells db!");

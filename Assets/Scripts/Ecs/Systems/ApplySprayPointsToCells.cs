@@ -33,7 +33,7 @@ namespace alexnown.EcsLife
 
             public void Execute(Entity entity, int index, [ReadOnly]ref SprayComponent spray, [ReadOnly]ref Position2D pos)
             {
-                CommandBuffer.DestroyEntity(0, entity);
+                CommandBuffer.DestroyEntity(index, entity);
 
                 var random = new Unity.Mathematics.Random((uint)(UInt32.MaxValue - Frame - index));
                 int points = (int)(spray.Intensity * math.PI * math.pow(spray.Radius, 2));
@@ -67,15 +67,19 @@ namespace alexnown.EcsLife
             if (_cellsDb.CalculateLength() == 0) return inputDeps;
             var cellsDb = _cellsDb.GetSharedComponentDataArray<CellsDb>()[0];
             var cellsDbState = _cellsDb.GetComponentDataArray<CellsDbState>()[0];
-            var currCellsState = cellsDbState.ActiveCellsState != 0 ? cellsDb.CellsState0 : cellsDb.CellsState1;
-            return new ProcessSprayPoints
+            var currCellsState = cellsDb.GetFutureCells(cellsDbState);
+            var cb = new EntityCommandBuffer(Allocator.TempJob);
+            var job = new ProcessSprayPoints
             {
                 Frame = Time.frameCount,
                 Width = cellsDb.Width,
                 Height = cellsDb.Height,
                 CellStates = currCellsState,
-                CommandBuffer = _barrier.CreateCommandBuffer().ToConcurrent()
+                CommandBuffer = cb.ToConcurrent()
             }.Schedule(this, inputDeps);
+            job.Complete();
+            cb.Playback(EntityManager);
+            return inputDeps;
         }
     }
 }

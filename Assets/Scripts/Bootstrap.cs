@@ -8,6 +8,7 @@ namespace alexnown.EcsLife
     public static class Bootstrap
     {
         public static BootstrapSettings Settings { get; private set; }
+        public static int TotalCells;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         public static void Initialize()
@@ -23,8 +24,8 @@ namespace alexnown.EcsLife
             if (Settings.InitializeManualUpdate)
             {
                 var autoUpdate = World.Active.GetOrCreateManager<UpdateCellWorldsSystem>();
-                autoUpdate.MaxTimeLimitSec = () => Settings.MaxWorldsUpdatesTimeLimitSec;
-                autoUpdate.MaxUpdatesLimit = () => Settings.MaxWorldsUpdatesLimit;
+                autoUpdate.MaxTimeLimitSec = 1f / Settings.PreferedFps;
+                autoUpdate.MaxUpdatesForFrame = Settings.MaxWorldsUpdatesLimit;
                 ScriptBehaviourUpdateOrder.UpdatePlayerLoop(World.Active);
             }
             else ScriptBehaviourUpdateOrder.UpdatePlayerLoop(World.AllWorlds.ToArray());
@@ -62,8 +63,9 @@ namespace alexnown.EcsLife
             colors[2] = new Color32(0, (byte)(Settings.GreenColor / 2), 0, 0);
             paintTexture.CellColorsByState = colors;
 
-            var futureCellsState = new NativeArray<CellState>(width * height, Allocator.Persistent);
-            var activeCellState = new NativeArray<CellState>(futureCellsState.Length, Allocator.Persistent);
+            TotalCells = width*height;
+            var futureCellsState = new NativeArray<CellState>(TotalCells, Allocator.Persistent);
+            var activeCellState = new NativeArray<CellState>(TotalCells, Allocator.Persistent);
 
             var activeCellsDb = em.CreateEntity(ComponentType.Create<CellsDb>(), ComponentType.Create<CellsDbState>());
             var cellsDb = new CellsDb

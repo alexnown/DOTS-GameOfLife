@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace alexnown.EcsLife
 {
-    [DisableAutoCreation]
+    [DisableAutoCreation] [UpdateAfter(typeof(UpdateCellWorldsSystem))] 
     public class DrawCellsTextureSystem : ComponentSystem
     {
         public Texture2D GeneratedTexture { get; private set; }
@@ -14,11 +14,16 @@ namespace alexnown.EcsLife
         private int _textureHeight;
         private NativeArray<byte> _colors;
         private ComponentGroup _worlds;
-        private bool _needCreateDrawRequest = true;
 
         protected override void OnCreateManager()
         {
-            _worlds = GetComponentGroup(ComponentType.Create<CellsWorld>());
+            _worlds = GetComponentGroup(ComponentType.ReadOnly<CellsWorld>());
+        }
+
+        protected override void OnDestroyManager()
+        {
+            base.OnDestroyManager();
+            if(_colors.IsCreated) _colors.Dispose();
         }
 
         public void InitializeTexture(int width, int height)
@@ -37,28 +42,16 @@ namespace alexnown.EcsLife
 
         protected override void OnUpdate()
         {
+            if(_worlds.CalculateLength() == 0) return;
+            var worldData = _worlds.GetSharedComponentDataArray<CellsWorld>()[0];
+            var drawSystem = worldData.World.GetOrCreateManager<UpdateTextureColorsJobSystem>();
+            drawSystem.Width = worldData.Width;
+            drawSystem.TextureColors = _colors;
+            drawSystem.Enabled = true;
+            drawSystem.Update();
+            drawSystem.Enabled = false;
             GeneratedTexture.LoadRawTextureData(_colors);
             GeneratedTexture.Apply();
-            if (_needCreateDrawRequest)
-            {
-                var worlds = _worlds.GetSharedComponentDataArray<CellsWorld>();
-                var targetWorld = worlds[SelectedWorldIndex];
-                var em = targetWorld.World.GetOrCreateManager<EntityManager>();
-                var request = new DrawStateRequest { Width = _textureWidth, Height = _textureHeight, Colors = _colors };
-                em.AddSharedComponentData(em.CreateEntity(), request);
-                _needCreateDrawRequest = false;
-            }
-            
-            //todo: put to cell world entity-request with colors array for drawing 
-            /*
-            if(Bootstrap.CellsWorld==null) return;
-            var generateTextureSystem = Bootstrap.CellsWorld.GetExistingManager<UpdateTextureColorsJobSystem>();
-            if (generateTextureSystem == null) return;
-
-            bool waitWhilePrepareTexture = !generateTextureSystem.TexturePrepared;
-            if(waitWhilePrepareTexture) return;
-            
-            generateTextureSystem.FillTargetArray(_colors, _textureWidth, _textureHeight); */
         }
 
 
