@@ -1,4 +1,5 @@
 ﻿using System;
+using alexnown.Ecs.Components;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
@@ -17,19 +18,6 @@ namespace alexnown.EcsLife
             _activeCellsDb = GetComponentGroup(ComponentType.Create<CellsDbState>(), ComponentType.Create<CellsDb>());
         }
 
-        /*
-        protected override void OnDestroyManager()
-        {
-            var cellDbs = _activeCellsDb.GetSharedComponentDataArray<CellsDb>();
-            for (int i = 0; i < cellDbs.Length; i++)
-            {
-                var cellDb = cellDbs[i];
-                cellDb.CellsState0.Dispose();
-                cellDb.CellsState1.Dispose();
-            }
-            base.OnDestroyManager();
-        } */
-
         protected override JobHandle OnUpdate(JobHandle inputDeps)
         {
             if (_activeCellsDb.CalculateLength() != 1) throw new InvalidOperationException($"Can't contains {_activeCellsDb.CalculateLength()} active cells db!");
@@ -41,7 +29,6 @@ namespace alexnown.EcsLife
             var job = new UpdateCellsState
             {
                 Width = cellsDb.Width,
-                Height = cellsDb.Height,
                 ActiveCells = activeCells,
                 FutureCellsState = futureCells
             }.Schedule(length, 2048, inputDeps);
@@ -51,22 +38,7 @@ namespace alexnown.EcsLife
 
         #region Job
 
-        struct Neighborns
-        {
-            public int LeftUp;
-            public int Up;
-            public int RightUp;
-            public int Right;
-            public int Left;
-            public int LeftDown;
-            public int Down;
-            public int RightDown;
-
-            public override string ToString()
-            {
-                return $"[{LeftUp} {Up} {RightUp} , {Left} x {Right}, {LeftDown} {Down} {RightDown}]";
-            }
-        }
+        
 
         [BurstCompile]
         struct UpdateCellsState : IJobParallelFor
@@ -75,44 +47,17 @@ namespace alexnown.EcsLife
             [ReadOnly]
             public int Width;
             [ReadOnly]
-            public int Height;
-            [ReadOnly]
             [NativeDisableParallelForRestriction]
             public NativeArray<CellState> ActiveCells;
             [WriteOnly]
             [NativeDisableParallelForRestriction]
             public NativeArray<CellState> FutureCellsState;
-
-            private Neighborns CalculateNeighborsOptimized(int posX, int posY, int width, int height, int length)
-            {
-                int arrayIndex = posY * width + posX;
-                int indexTop = arrayIndex + width;
-                if (indexTop >= length) indexTop -= length;
-                int indexDown = arrayIndex - width;
-                if (indexDown < 0) indexDown += length;
-                int leftOffsetX = posX == 0 ? (width - 1) : -1;
-                int rightOffsetX = posX == width - 1 ? (1 - width) : 1;
-
-                var neighbors = new Neighborns
-                {
-                    LeftUp = indexTop + leftOffsetX,
-                    Up = indexTop,
-                    RightUp = indexTop + rightOffsetX,
-                    Left = arrayIndex + leftOffsetX,
-                    Right = arrayIndex + rightOffsetX,
-                    LeftDown = indexDown + leftOffsetX,
-                    Down = indexDown,
-                    RightDown = indexDown + rightOffsetX
-                };
-                return neighbors;
-            }
-
+            
             public void Execute(int index)
             {
                 int posX = index % Width;
                 int posY = index / Width;
-                var neighbors = CalculateNeighborsOptimized(posX, posY, Width, Height, ActiveCells.Length);
-
+                var neighbors = Neighbors.Calculate(posX, posY, Width, ActiveCells.Length);
 
                 int aliveNeighbors = 0;
                 aliveNeighbors += ActiveCells[neighbors.LeftUp].State;
