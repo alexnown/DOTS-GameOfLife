@@ -13,8 +13,7 @@ MonoBehaviour:
   m_Name: BootstrapSettings
   m_EditorClassIdentifier: 
   _resolutionMultiplier: 1
-  _greenColor: 255
-  _updateRules: 0
+  _updateRules: 1
   _initializeManualUpdate: 1
   _maxWorldsUpdatesLimit: 100
   _preferedFps: 20

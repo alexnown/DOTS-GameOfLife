@@ -19,10 +19,6 @@ namespace alexnown.EcsLife
         [SerializeField]
         [Range(0.125f, 4)]
         private float _resolutionMultiplier = 1;
-        [Range(10, 255)]
-        [SerializeField]
-        private int _greenColor = 255;
-
         [SerializeField]
         private WorldRules _updateRules = WorldRules.Default;
 
@@ -37,7 +33,7 @@ namespace alexnown.EcsLife
 
         [Header("Customization")]
         [SerializeField]
-        private Color32[] _colorsByState;
+        private Color32[] _colorsByState = new[] { new Color32(), new Color32(0, 255, 0, 0) };
         [SerializeField]
         [Range(0.1f, 1)]
         private float _colorsIntensity = 1;
