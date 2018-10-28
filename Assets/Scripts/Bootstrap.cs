@@ -8,6 +8,8 @@ namespace alexnown.EcsLife
 {
     public static class Bootstrap
     {
+
+
         public static BootstrapSettings Settings { get; private set; }
         public static int Width;
         public static int Height;
@@ -52,7 +54,6 @@ namespace alexnown.EcsLife
         private static CellsWorld InitializeCellsWorld()
         {
             var world = new World("CellWorld");
-            
             world.CreateManager<ApplyFutureStatesSystem>();
             world.CreateManager<UpdateCellsLifeRulesSystem>();
             world.CreateManager<DisposeCellsArrayOnDestroyWorld>();
@@ -65,15 +66,16 @@ namespace alexnown.EcsLife
             colors[1] = new Color32(0, Settings.GreenColor, 0, 0);
             colors[2] = new Color32(0, (byte)(Settings.GreenColor / 2), 0, 0);
             paintTexture.CellColorsByState = colors;
-            
+
             var futureCellsState = new NativeArray<CellState>(TotalCells, Allocator.Persistent);
             var activeCellState = new NativeArray<CellState>(TotalCells, Allocator.Persistent);
             //var cellAlive = new CellState { State = 1 };
             //activeCellState[0] = activeCellState[1] = activeCellState[2] = activeCellState[2 + Width] = activeCellState[1 + 2 * Width] = cellAlive;
-            
+
             var activeCellsDb = em.CreateEntity(ComponentType.Create<CellsDb>(), ComponentType.Create<CellsDbState>());
             var cellsDb = new CellsDb
             {
+                UpdateRules = Settings.UpdateRules,
                 Width = Width,
                 Height = Height,
                 CellsState0 = activeCellState,

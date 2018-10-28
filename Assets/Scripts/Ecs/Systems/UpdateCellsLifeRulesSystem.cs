@@ -4,6 +4,7 @@ using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
+using UnityEngine.AI;
 
 namespace alexnown.EcsLife
 {
@@ -26,22 +27,37 @@ namespace alexnown.EcsLife
             var activeCells = cellsDb.GetActiveCells(cellsDbState);
             var futureCells = cellsDb.GetFutureCells(cellsDbState);
             int length = activeCells.Length;
-            var job = new UpdateCellsState
+
+            JobHandle jobHandle = default(JobHandle);
+            if (cellsDb.UpdateRules == WorldRules.Default)
             {
-                Width = cellsDb.Width,
-                ActiveCells = activeCells,
-                FutureCellsState = futureCells
-            }.Schedule(length, 2048, inputDeps);
-            job.Complete();
-            return job;
+                jobHandle = new SimpleLifeRules
+                {
+                    Width = cellsDb.Width,
+                    ActiveCells = activeCells,
+                    FutureCellsState = futureCells
+                }.Schedule(length, 2048, inputDeps);
+            }
+            else if (cellsDb.UpdateRules == WorldRules.Steppers)
+            {
+                jobHandle = new SteppersRules
+                {
+                    Width = cellsDb.Width,
+                    ActiveCells = activeCells,
+                    FutureCellsState = futureCells
+                }.Schedule(length, 2048, inputDeps);
+            }
+
+            jobHandle.Complete();
+            return jobHandle;
         }
 
         #region Job
 
-        
+
 
         [BurstCompile]
-        struct UpdateCellsState : IJobParallelFor
+        struct SimpleLifeRules : IJobParallelFor
         {
 
             [ReadOnly]
@@ -52,7 +68,7 @@ namespace alexnown.EcsLife
             [WriteOnly]
             [NativeDisableParallelForRestriction]
             public NativeArray<CellState> FutureCellsState;
-            
+
             public void Execute(int index)
             {
                 int posX = index % Width;
@@ -75,6 +91,64 @@ namespace alexnown.EcsLife
                 FutureCellsState[index] = state;
             }
         }
+
+        [BurstCompile]
+        struct SteppersRules : IJobParallelFor
+        {
+
+            [ReadOnly]
+            public int Width;
+            [ReadOnly]
+            [NativeDisableParallelForRestriction]
+            public NativeArray<CellState> ActiveCells;
+            [WriteOnly]
+            [NativeDisableParallelForRestriction]
+            public NativeArray<CellState> FutureCellsState;
+
+            public void Execute(int index)
+            {
+                var cellState = ActiveCells[index];
+                if (cellState.State == 1)
+                {
+                    FutureCellsState[index] = new CellState { State = 2 };
+                    return;
+                }
+                int posX = index % Width;
+                int posY = index / Width;
+
+                var neighbors = Neighbors.Calculate(posX, posY, Width, ActiveCells.Length);
+                int old = 0;
+                int young = 0;
+                SumNeighbors(neighbors.LeftUp, ref old, ref young);
+                SumNeighbors(neighbors.Up, ref old, ref young);
+                SumNeighbors(neighbors.RightUp, ref old, ref young);
+                SumNeighbors(neighbors.Left, ref old, ref young);
+                SumNeighbors(neighbors.Right, ref old, ref young);
+                SumNeighbors(neighbors.LeftDown, ref old, ref young);
+                SumNeighbors(neighbors.Down, ref old, ref young);
+                SumNeighbors(neighbors.RightDown, ref old, ref young);
+                int totalSum = old + young;
+
+                var state = new CellState();
+                if (cellState.State == 0 && totalSum == 3 && old > 1)
+                {
+                    state.State = 1;
+                }
+                else if (cellState.State == 2 && totalSum > 1 && totalSum < 4 && young < 2)
+                {
+                    state.State = 2;
+                }
+                FutureCellsState[index] = state;
+            }
+
+            private void SumNeighbors(int index, ref int old, ref int young)
+            {
+                var state = ActiveCells[index].State;
+                if (state == 1) young++;
+                else if (state == 2) old++;
+            }
+        }
+
 
         #endregion
 

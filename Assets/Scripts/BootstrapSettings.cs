@@ -8,6 +8,7 @@ namespace alexnown.EcsLife
 
         public float ResolutionMultiplier => _resolutionMultiplier;
         public byte GreenColor => (byte)_greenColor;
+        public WorldRules UpdateRules => _updateRules;
 
         public bool InitializeManualUpdate => _initializeManualUpdate;
         public int MaxWorldsUpdatesLimit => _maxWorldsUpdatesLimit;
@@ -19,6 +20,9 @@ namespace alexnown.EcsLife
         [Range(10, 255)]
         [SerializeField]
         private int _greenColor = 255;
+
+        [SerializeField]
+        private WorldRules _updateRules = WorldRules.Default;
 
         [Header("ManualWorldsUpdate")]
         [SerializeField]

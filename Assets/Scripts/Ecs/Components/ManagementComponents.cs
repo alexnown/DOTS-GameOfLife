@@ -3,6 +3,12 @@ using Unity.Entities;
 
 namespace alexnown.EcsLife
 {
+    public enum WorldRules
+    {
+        Default, 
+        Steppers
+    }
+
     public struct CellsWorld : ISharedComponentData
     {
         public World World;
@@ -14,6 +20,7 @@ namespace alexnown.EcsLife
 
     public struct CellsDb : ISharedComponentData
     {
+        public WorldRules UpdateRules;
         public int Width;
         public int Height;
         public NativeArray<CellState> CellsState0;
