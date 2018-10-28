@@ -12,9 +12,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 21048d6390f0a2949bec1549f26790c3, type: 3}
   m_Name: BootstrapSettings
   m_EditorClassIdentifier: 
-  _resolutionMultiplier: 2
+  _resolutionMultiplier: 1
   _greenColor: 255
-  _updateRules: 1
+  _updateRules: 0
   _initializeManualUpdate: 1
-  _maxWorldsUpdatesLimit: 1000
+  _maxWorldsUpdatesLimit: 100
   _preferedFps: 20
+  _colorsByState:
+  - serializedVersion: 2
+    rgba: 0
+  - serializedVersion: 2
+    rgba: 1888767
+  - serializedVersion: 2
+    rgba: 3361731
+  _colorsIntensity: 1

@@ -7,8 +7,10 @@ namespace alexnown.EcsLife
     {
 
         public float ResolutionMultiplier => _resolutionMultiplier;
-        public byte GreenColor => (byte)_greenColor;
         public WorldRules UpdateRules => _updateRules;
+
+        public Color32[] CellColors => _colorsByState;
+        public float ColorsIntansity => _colorsIntensity;
 
         public bool InitializeManualUpdate => _initializeManualUpdate;
         public int MaxWorldsUpdatesLimit => _maxWorldsUpdatesLimit;
@@ -32,6 +34,13 @@ namespace alexnown.EcsLife
         [SerializeField]
         [Range(1, 60)]
         private int _preferedFps = 20;
+
+        [Header("Customization")]
+        [SerializeField]
+        private Color32[] _colorsByState;
+        [SerializeField]
+        [Range(0.1f, 1)]
+        private float _colorsIntensity = 1;
     }
 }
 

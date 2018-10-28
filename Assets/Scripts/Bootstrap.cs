@@ -54,6 +54,7 @@ namespace alexnown.EcsLife
         private static CellsWorld InitializeCellsWorld()
         {
             var world = new World("CellWorld");
+
             world.CreateManager<ApplyFutureStatesSystem>();
             world.CreateManager<UpdateCellsLifeRulesSystem>();
             world.CreateManager<DisposeCellsArrayOnDestroyWorld>();
@@ -61,16 +62,19 @@ namespace alexnown.EcsLife
             world.CreateManager<ApplySprayPointsToCells>();
             var em = world.GetOrCreateManager<EntityManager>();
 
-            var colors = new NativeArray<Color32>(3, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
-            colors[0] = new Color32();
-            colors[1] = new Color32(0, Settings.GreenColor, 0, 0);
-            colors[2] = new Color32(0, (byte)(Settings.GreenColor / 2), 0, 0);
+            var colorsArray = Settings.CellColors;
+            var colors = new NativeArray<Color32>(colorsArray.Length, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+            for (int i = 0; i < colors.Length; i++)
+            {
+                var col = colorsArray[i];
+                colors[i] = new Color32((byte)(col.r * Settings.ColorsIntansity),
+                    (byte)(col.g * Settings.ColorsIntansity),
+                    (byte)(col.b * Settings.ColorsIntansity), 0);
+            }
             paintTexture.CellColorsByState = colors;
 
             var futureCellsState = new NativeArray<CellState>(TotalCells, Allocator.Persistent);
             var activeCellState = new NativeArray<CellState>(TotalCells, Allocator.Persistent);
-            //var cellAlive = new CellState { State = 1 };
-            //activeCellState[0] = activeCellState[1] = activeCellState[2] = activeCellState[2 + Width] = activeCellState[1 + 2 * Width] = cellAlive;
 
             var activeCellsDb = em.CreateEntity(ComponentType.Create<CellsDb>(), ComponentType.Create<CellsDbState>());
             var cellsDb = new CellsDb
