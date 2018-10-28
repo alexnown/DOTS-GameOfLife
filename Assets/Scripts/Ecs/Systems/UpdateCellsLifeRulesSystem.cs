@@ -113,6 +113,7 @@ namespace alexnown.EcsLife
                 int posY = index / Width;
                 var neighbors = CalculateNeighborsOptimized(posX, posY, Width, Height, ActiveCells.Length);
 
+
                 int aliveNeighbors = 0;
                 aliveNeighbors += ActiveCells[neighbors.LeftUp].State;
                 aliveNeighbors += ActiveCells[neighbors.Up].State;
@@ -123,9 +124,9 @@ namespace alexnown.EcsLife
                 aliveNeighbors += ActiveCells[neighbors.Down].State;
                 aliveNeighbors += ActiveCells[neighbors.RightDown].State;
 
-
-                bool isAlive = aliveNeighbors == 3 || aliveNeighbors == 2;
-                var state = new CellState { State = isAlive ? (byte)1 : (byte)0 };
+                var state = new CellState();
+                bool isAlive = aliveNeighbors == 3 || (aliveNeighbors == 2 && ActiveCells[index].State == 1);
+                if (isAlive) state.State = 1;
                 FutureCellsState[index] = state;
             }
         }
