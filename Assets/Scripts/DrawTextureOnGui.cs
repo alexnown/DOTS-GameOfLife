@@ -34,9 +34,19 @@ namespace alexnown.EcsLife
             var texture = RecieveTexture();
             if (texture != null)
             {
+                int minSide = Math.Min(Screen.width, Screen.height);
+                int minTextureSide = Math.Min(texture.width, texture.height);
+                float screenMultiplier = (float)minTextureSide / minSide;
+                int texturePosX = 0;
+                int texturePosY = 0;
+                if (Screen.width > Screen.height)
+                {
+                    texturePosX = (int)((Screen.width * screenMultiplier - texture.width) / 2);
+                }
+                else texturePosY = (int)((Screen.height * screenMultiplier - texture.height) / 2);
                 GL.PushMatrix();
-                GL.LoadPixelMatrix(0, Screen.width, Screen.height, 0);
-                Graphics.DrawTexture(new Rect(0, 0, texture.width, texture.height), texture);
+                GL.LoadPixelMatrix(0, Screen.width * screenMultiplier, Screen.height * screenMultiplier, 0);
+                Graphics.DrawTexture(new Rect(texturePosX, texturePosY, texture.width, texture.height), texture);
                 GL.PopMatrix();
             }
             var stats = $"Fps: {_fps}\nCells:{LongToString(Bootstrap.TotalCells)}\nAge: {LongToString(UpdateCellWorldsSystem.TotalUpdates)}\n" +

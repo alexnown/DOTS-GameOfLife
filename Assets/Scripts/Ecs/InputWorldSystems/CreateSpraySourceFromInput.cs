@@ -1,5 +1,7 @@
-﻿using Unity.Entities;
+﻿using System;
+using Unity.Entities;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace alexnown.EcsLife
 {
@@ -15,6 +17,7 @@ namespace alexnown.EcsLife
         protected override void OnUpdate()
         {
             if (!Input.GetMouseButton(0)) return;
+            
             float viewPosX = Input.mousePosition.x / Screen.width;
             float viewPosY = Input.mousePosition.y / Screen.height;
             var worlds = _worlds.GetSharedComponentDataArray<CellsWorld>();

@@ -5,16 +5,16 @@ namespace alexnown.EcsLife
     [CreateAssetMenu(fileName = nameof(BootstrapSettings))]
     public class BootstrapSettings : ScriptableObject
     {
-        public int ResolutionMultiplier => _resolutionMultiplier;
+       
+        public float ResolutionMultiplier => _resolutionMultiplier;
         public byte GreenColor => (byte)_greenColor;
 
         public bool InitializeManualUpdate => _initializeManualUpdate;
         public int MaxWorldsUpdatesLimit => _maxWorldsUpdatesLimit;
         public int PreferedFps => _preferedFps;
 
-        [Range(1, 20)]
-        [SerializeField]
-        private int _resolutionMultiplier = 1;
+        [SerializeField] [Range(0.125f, 4)]
+        private float _resolutionMultiplier = 1;
         [Range(10, 255)]
         [SerializeField]
         private int _greenColor = 255;

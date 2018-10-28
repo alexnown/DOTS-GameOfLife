@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+using alexnown.EcsLife.Systems;
 using Unity.Collections;
 using Unity.Entities;
 using UnityEngine;
@@ -8,12 +9,17 @@ namespace alexnown.EcsLife
     public static class Bootstrap
     {
         public static BootstrapSettings Settings { get; private set; }
+        public static int Width;
+        public static int Height;
         public static int TotalCells;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         public static void Initialize()
         {
             Settings = Resources.Load<BootstrapSettings>("BootstrapSettings");
+            Width = (int)(Screen.width * Settings.ResolutionMultiplier);
+            Height = (int)(Screen.height * Settings.ResolutionMultiplier);
+            TotalCells = Width * Height;
 
             World.DisposeAllWorlds();
             InitializeInputWorld();
@@ -37,7 +43,7 @@ namespace alexnown.EcsLife
             World.Active = inputWorld;
             inputWorld.CreateManager<CreateSpraySourceFromInput>();
             var drawSystem = inputWorld.GetOrCreateManager<DrawCellsTextureSystem>();
-            drawSystem.InitializeTexture(Screen.width, Screen.height);
+            drawSystem.InitializeTexture(Width, Height);
 
             var drawer = new GameObject("DrawerOnGUI").AddComponent<DrawTextureOnGui>();
             drawer.RecieveTexture = () => drawSystem.GeneratedTexture;
@@ -46,10 +52,7 @@ namespace alexnown.EcsLife
         private static CellsWorld InitializeCellsWorld()
         {
             var world = new World("CellWorld");
-            int width = Screen.width * Settings.ResolutionMultiplier;
-            int height = Screen.height * Settings.ResolutionMultiplier;
-
-            world.CreateManager<EndCellsUpdatesBarrier>();
+            
             world.CreateManager<ApplyFutureStatesSystem>();
             world.CreateManager<UpdateCellsLifeRulesSystem>();
             world.CreateManager<DisposeCellsArrayOnDestroyWorld>();
@@ -62,16 +65,17 @@ namespace alexnown.EcsLife
             colors[1] = new Color32(0, Settings.GreenColor, 0, 0);
             colors[2] = new Color32(0, (byte)(Settings.GreenColor / 2), 0, 0);
             paintTexture.CellColorsByState = colors;
-
-            TotalCells = width*height;
+            
             var futureCellsState = new NativeArray<CellState>(TotalCells, Allocator.Persistent);
             var activeCellState = new NativeArray<CellState>(TotalCells, Allocator.Persistent);
-
+            //var cellAlive = new CellState { State = 1 };
+            //activeCellState[0] = activeCellState[1] = activeCellState[2] = activeCellState[2 + Width] = activeCellState[1 + 2 * Width] = cellAlive;
+            
             var activeCellsDb = em.CreateEntity(ComponentType.Create<CellsDb>(), ComponentType.Create<CellsDbState>());
             var cellsDb = new CellsDb
             {
-                Width = width,
-                Height = height,
+                Width = Width,
+                Height = Height,
                 CellsState0 = activeCellState,
                 CellsState1 = futureCellsState
             };
@@ -79,8 +83,8 @@ namespace alexnown.EcsLife
 
             return new CellsWorld
             {
-                Width = width,
-                Height = height,
+                Width = Width,
+                Height = Height,
                 World = world
             };
         }

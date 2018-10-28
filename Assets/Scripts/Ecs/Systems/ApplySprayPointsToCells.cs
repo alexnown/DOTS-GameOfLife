@@ -34,7 +34,6 @@ namespace alexnown.EcsLife
             public void Execute(Entity entity, int index, [ReadOnly]ref SprayComponent spray, [ReadOnly]ref Position2D pos)
             {
                 CommandBuffer.DestroyEntity(index, entity);
-
                 var random = new Unity.Mathematics.Random((uint)(UInt32.MaxValue - Frame - index));
                 int points = (int)(spray.Intensity * math.PI * math.pow(spray.Radius, 2));
                 for (int i = 0; i < points; i++)
@@ -79,6 +78,7 @@ namespace alexnown.EcsLife
             }.Schedule(this, inputDeps);
             job.Complete();
             cb.Playback(EntityManager);
+            cb.Dispose();
             return inputDeps;
         }
     }
