@@ -1,5 +1,4 @@
-﻿using System;
-using alexnown.GameOfLife;
+﻿using alexnown.GameOfLife;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
@@ -28,8 +27,8 @@ namespace alexnown.EcsLife
                     //and translate the center to the current mouse position
                     int posX = (int)(Size.Width * pos.Value.x);
                     int posY = (int)(Size.Height * pos.Value.y);
-                    int x = (int)(posX + Math.Cos(theta) * r);
-                    int y = (int)(posY + Math.Sin(theta) * r);
+                    int x = (int)(posX + math.cos(theta) * r);
+                    int y = (int)(posY + math.sin(theta) * r);
                     bool inBounds = x >= 0 && x < Size.Width && y >= 0 && y < Size.Height;
                     if (inBounds)
                     {
