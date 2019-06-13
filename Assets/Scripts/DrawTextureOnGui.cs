@@ -1,22 +1,25 @@
 ﻿using System;
+using alexnown.GameOfLife;
+using Unity.Entities;
 using UnityEngine;
 
 namespace alexnown.EcsLife
 {
     public class DrawTextureOnGui : MonoBehaviour
     {
-        public Func<Texture2D> RecieveTexture;
         public float UpdateFpsInterval = 0.5f;
 
 
         private float _deltaTime = 0.0f;
         private int _updatesCount;
         private int _fps = 0;
+        private int _lastUpdatedFrame;
         private GUIStyle statsStyle;
+        private UpdateRendererTextureSystem _rendererSystem;
 
         private void Update()
         {
-            if (statsStyle == null) statsStyle = new GUIStyle { fontSize = 30, normal = new GUIStyleState { textColor = Color.white } };
+            if (statsStyle == null) statsStyle = new GUIStyle { fontSize = 40, normal = new GUIStyleState { textColor = Color.white } };
             _deltaTime += Time.deltaTime;
             _updatesCount++;
             if (_deltaTime > UpdateFpsInterval)
@@ -27,14 +30,25 @@ namespace alexnown.EcsLife
             }
         }
 
+        private void Start()
+        {
+            //Application.targetFrameRate = 60;
+            _rendererSystem = World.Active.GetOrCreateSystem<UpdateRendererTextureSystem>();
+        }
+
+
         public void OnGUI()
         {
+            if (_lastUpdatedFrame == Time.frameCount) return;
             if (Event.current.type != EventType.Repaint) return;
-
-            var texture = RecieveTexture();
+            _lastUpdatedFrame = Time.frameCount;
+            var texture = _rendererSystem.CreatedTexture;
+            int minSide = Math.Min(Screen.width, Screen.height);
+            statsStyle.fontSize = minSide / 50;
+            int totalCells = -1;
             if (texture != null)
             {
-                int minSide = Math.Min(Screen.width, Screen.height);
+                totalCells = texture.width * texture.height;
                 int minTextureSide = Math.Min(texture.width, texture.height);
                 float screenMultiplier = (float)minTextureSide / minSide;
                 int texturePosX = 0;
@@ -49,9 +63,14 @@ namespace alexnown.EcsLife
                 Graphics.DrawTexture(new Rect(texturePosX, texturePosY, texture.width, texture.height), texture);
                 GL.PopMatrix();
             }
-            var stats = $"Fps: {_fps}\nCells:{LongToString(Bootstrap.TotalCells)}\nAge: {LongToString(UpdateCellWorldsSystem.TotalUpdates)}\n" +
-                        $"Time : {(int)UpdateCellWorldsSystem.TotalTime}\n" +
-                        $"Speed: {(int)UpdateCellWorldsSystem.UpdatesSpeed}/s";
+            //var stats = $"Fps: {_fps}\nCells:{LongToString(Bootstrap.TotalCells)}\nAge: {LongToString(UpdateCellWorldsSystem.TotalUpdates)}\n" +
+            //            $"Time : {(int)UpdateCellWorldsSystem.TotalTime}\n" +
+            //            $"Speed: {(int)UpdateCellWorldsSystem.UpdatesSpeed}/s";
+            float speed = -1;
+            if (Time.time > 0) speed = Time.frameCount / Time.time;
+            var stats = $"Fps: {_fps}\nCells:{LongToString(totalCells)}\nAge: {Time.frameCount}\n" +
+                       $"Time : {(int)Time.time}\n" +
+                       $"Speed: {speed.ToString("F1")}/s";
             GUI.Label(new Rect(
            Screen.width * 0.05f,
            Screen.height * 0.02f,
