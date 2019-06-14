@@ -1,16 +1,19 @@
-﻿using Unity.Burst;
+﻿using System.Diagnostics;
+using Unity.Burst;
 using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
 using Unity.Entities;
 using Unity.Jobs;
-using UnityEngine;
 
 namespace alexnown.GameOfLife
 {
     public class ConwaysSimulationSystem : ComponentSystem
     {
         [BurstCompile]
-        struct SteppersUpdate : IJobParallelFor
+        struct UpdateCells : IJobParallelFor
         {
+            [NativeSetThreadIndex]
+            public int ThreadIndex;
             [ReadOnly]
             public int Width;
             [ReadOnly]
@@ -19,40 +22,38 @@ namespace alexnown.GameOfLife
 
             public void Execute(int index)
             {
-                byte arrayIndex = CellsData.Value.ArrayIndex;
+                if (CellsData.Value.ArrayIndex == 0)
+                {
+                    Process(ref CellsData.Value.Array1, ref CellsData.Value.Array0, index);
+                }
+                else Process(ref CellsData.Value.Array0, ref CellsData.Value.Array1, index);
+            }
+
+            private void Process(ref BlobArray<byte> cellsArray, ref BlobArray<byte> nextFrameCells, int index)
+            {
                 int posX = index % Width;
                 int posY = index / Width;
                 var neighbors = Neighbors.Calculate(posX, posY, Width, Length);
 
                 int sum = 0;
-                ReadCellState(arrayIndex, neighbors.LeftUp, ref sum);
-                ReadCellState(arrayIndex, neighbors.Up, ref sum);
-                ReadCellState(arrayIndex, neighbors.RightUp, ref sum);
-                ReadCellState(arrayIndex, neighbors.Left, ref sum);
-                ReadCellState(arrayIndex, neighbors.Right, ref sum);
-                ReadCellState(arrayIndex, neighbors.LeftDown, ref sum);
-                ReadCellState(arrayIndex, neighbors.Down, ref sum);
-                ReadCellState(arrayIndex, neighbors.RightDown, ref sum);
+                sum += cellsArray[neighbors.LeftUp];
+                sum += cellsArray[neighbors.Up];
+                sum += cellsArray[neighbors.RightUp];
+                sum += cellsArray[neighbors.Left];
+                sum += cellsArray[neighbors.Right];
+                sum += cellsArray[neighbors.LeftDown];
+                sum += cellsArray[neighbors.Down];
+                sum += cellsArray[neighbors.RightDown];
 
-                int cellState = 0;
-                ReadCellState(arrayIndex, index, ref cellState);
                 byte state = 0;
-                bool isAlive = sum == 3 || (sum == 2 && cellState == 1);
+                bool isAlive = sum == 3 || (sum == 2 && cellsArray[index] == 1);
                 if (isAlive) state = 1;
-                if (arrayIndex == 0) CellsData.Value.Array0[index] = state;
-                else CellsData.Value.Array1[index] = state;
-            }
-
-            private void ReadCellState(int arrayIndex, int index, ref int sum)
-            {
-                var cellState = arrayIndex == 0 ?
-                    CellsData.Value.Array1[index] :
-                    CellsData.Value.Array0[index];
-                sum += cellState;
+                nextFrameCells[index] = state;
             }
         }
 
         private EntityQuery _cellWorlds;
+        private readonly Stopwatch _timer = new Stopwatch();
 
         protected override void OnCreate()
         {
@@ -68,15 +69,20 @@ namespace alexnown.GameOfLife
         {
             Entities.With(_cellWorlds).ForEach((ref WorldSize size, ref WorldCellsComponent cellsData) =>
             {
+                _timer.Start();
                 cellsData.Value.Value.ArrayIndex = (byte)((cellsData.Value.Value.ArrayIndex + 1) % 2);
                 int length = cellsData.Value.Value.Array0.Length;
-                var job = new SteppersUpdate
+                var job = new UpdateCells
                 {
                     Width = size.Width,
                     Length = length,
-                    CellsData = cellsData.Value
-                }.Schedule(length, (length / SystemInfo.processorCount) + 1);
+                    CellsData = cellsData.Value,
+                }.Schedule(length, 1024);
                 job.Complete();
+                _timer.Stop();
+                SimulationStatistics.SimulationsCount++;
+                SimulationStatistics.SimulationTotalTicks += _timer.ElapsedTicks;
+                _timer.Reset();
             });
         }
     }

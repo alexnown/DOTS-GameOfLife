@@ -1,8 +1,8 @@
-﻿using Unity.Burst;
+﻿using System.Diagnostics;
+using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
-using UnityEngine;
 
 namespace alexnown.GameOfLife
 {
@@ -10,7 +10,7 @@ namespace alexnown.GameOfLife
     public class SteppersSimulationSystem : ComponentSystem
     {
         [BurstCompile]
-        struct SteppersUpdate : IJobParallelFor
+        struct UpdateCells : IJobParallelFor
         {
             [ReadOnly]
             public int Width;
@@ -20,15 +20,18 @@ namespace alexnown.GameOfLife
 
             public void Execute(int index)
             {
-                byte arrayIndex = CellsData.Value.ArrayIndex;
-                CellsData.Value.ArrayIndex = arrayIndex;
-                var cellState = arrayIndex == 0 ?
-                    CellsData.Value.Array1[index] :
-                    CellsData.Value.Array0[index];
+                if (CellsData.Value.ArrayIndex == 0)
+                {
+                    Process(ref CellsData.Value.Array1, ref CellsData.Value.Array0, index);
+                } else Process(ref CellsData.Value.Array0, ref CellsData.Value.Array1, index);
+            }
+
+            private void Process(ref BlobArray<byte> cellsArray, ref BlobArray<byte> nextFrameCells, int index)
+            {
+                byte cellState = cellsArray[index];
                 if (cellState == 1)
                 {
-                    if (arrayIndex == 0) CellsData.Value.Array0[index] = 2;
-                    else CellsData.Value.Array1[index] = 2;
+                    nextFrameCells[index] = 2;
                     return;
                 }
                 int posX = index % Width;
@@ -37,14 +40,14 @@ namespace alexnown.GameOfLife
                 var neighbors = Neighbors.Calculate(posX, posY, Width, Length);
                 int old = 0;
                 int young = 0;
-                ReadCellState(arrayIndex, neighbors.LeftUp, ref old, ref young);
-                ReadCellState(arrayIndex, neighbors.Up, ref old, ref young);
-                ReadCellState(arrayIndex, neighbors.RightUp, ref old, ref young);
-                ReadCellState(arrayIndex, neighbors.Left, ref old, ref young);
-                ReadCellState(arrayIndex, neighbors.Right, ref old, ref young);
-                ReadCellState(arrayIndex, neighbors.LeftDown, ref old, ref young);
-                ReadCellState(arrayIndex, neighbors.Down, ref old, ref young);
-                ReadCellState(arrayIndex, neighbors.RightDown, ref old, ref young);
+                IncreaseCounters(cellsArray[neighbors.LeftUp], ref old, ref young);
+                IncreaseCounters(cellsArray[neighbors.Up], ref old, ref young);
+                IncreaseCounters(cellsArray[neighbors.RightUp], ref old, ref young);
+                IncreaseCounters(cellsArray[neighbors.Left], ref old, ref young);
+                IncreaseCounters(cellsArray[neighbors.Right], ref old, ref young);
+                IncreaseCounters(cellsArray[neighbors.LeftDown], ref old, ref young);
+                IncreaseCounters(cellsArray[neighbors.Down], ref old, ref young);
+                IncreaseCounters(cellsArray[neighbors.RightDown], ref old, ref young);
                 int totalSum = old + young;
                 byte state = 0;
                 if (cellState == 0 && totalSum == 3 && old > 1)
@@ -55,21 +58,18 @@ namespace alexnown.GameOfLife
                 {
                     state = 2;
                 }
-                if (arrayIndex == 0) CellsData.Value.Array0[index] = state;
-                else CellsData.Value.Array1[index] = state;
+                nextFrameCells[index] = state;
             }
 
-            private void ReadCellState(int arrayIndex, int index, ref int old, ref int young)
+            private void IncreaseCounters(byte value, ref int old, ref int young)
             {
-                var cellState = arrayIndex == 0 ?
-                    CellsData.Value.Array1[index] :
-                    CellsData.Value.Array0[index];
-                if (cellState == 1) young++;
-                else if (cellState == 2) old++;
+                if (value == 1) young++;
+                else if (value == 2) old++;
             }
         }
 
         private EntityQuery _cellWorlds;
+        private readonly Stopwatch _timer = new Stopwatch();
 
         protected override void OnCreate()
         {
@@ -85,15 +85,20 @@ namespace alexnown.GameOfLife
         {
             Entities.With(_cellWorlds).ForEach((ref WorldSize size, ref WorldCellsComponent cellsData) =>
             {
+                _timer.Start();
                 cellsData.Value.Value.ArrayIndex = (byte)((cellsData.Value.Value.ArrayIndex + 1) % 2);
                 int length = cellsData.Value.Value.Array0.Length;
-                var job = new SteppersUpdate
+                var job = new UpdateCells
                 {
                     Width = size.Width,
                     Length = length,
                     CellsData = cellsData.Value
-                }.Schedule(length, (length / SystemInfo.processorCount) + 1);
+                }.Schedule(length, 1024);
                 job.Complete();
+                _timer.Stop();
+                SimulationStatistics.SimulationsCount++;
+                SimulationStatistics.SimulationTotalTicks += _timer.ElapsedTicks;
+                _timer.Reset();
             });
         }
     }

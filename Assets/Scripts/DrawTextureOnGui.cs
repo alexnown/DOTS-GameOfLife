@@ -67,15 +67,17 @@ namespace alexnown.EcsLife
             //            $"Time : {(int)UpdateCellWorldsSystem.TotalTime}\n" +
             //            $"Speed: {(int)UpdateCellWorldsSystem.UpdatesSpeed}/s";
             float speed = -1;
+            long simulationTicks = SimulationStatistics.SimulationTotalTicks / SimulationStatistics.SimulationsCount;
+            long updateTextureTicks = SimulationStatistics.UpdateTextureTotalTicks / SimulationStatistics.UpdateTextureCounts;
             if (Time.time > 0) speed = Time.frameCount / Time.time;
-            var stats = $"Fps: {_fps}\nCells:{LongToString(totalCells)}\nAge: {Time.frameCount}\n" +
-                       $"Time : {(int)Time.time}\n" +
-                       $"Speed: {speed.ToString("F1")}/s";
-            GUI.Label(new Rect(
-           Screen.width * 0.05f,
-           Screen.height * 0.02f,
-           Screen.width * 0.2f,
-           Screen.height * 0.1f), stats, statsStyle);
+            var stats = $"Cells: {LongToString(totalCells)}  Cores: {SystemInfo.processorCount}\nFps: {_fps}    Age: {Time.frameCount}\nCells update : {LongToString(simulationTicks)} ticks\n" +
+                       $"Texture update : {LongToString(updateTextureTicks)} ticks\nSimulation speed: {speed.ToString("F1")}/s";
+            var rect = new Rect(
+                Screen.width*0.05f,
+                Screen.height*0.02f,
+                Screen.width*0.2f,
+                Screen.height*0.1f);
+            GUI.Label(rect, stats, statsStyle);
         }
 
         public string LongToString(long l)
