@@ -31,7 +31,7 @@ namespace alexnown.GameOfLife
         {
             int2 size = UseScreenResolution ? CalculateTargetResolution() : TargetResolution;
             dstManager.AddComponentData(entity, new WorldSize { Width = size.x, Height = size.y });
-            dstManager.AddComponentData(entity, new WorldCellsComponent { Value = ConstructBlob(Screen.width * Screen.height) });
+            dstManager.AddComponentData(entity, new WorldCellsComponent { Value = ConstructBlob(size.x * size.y) });
             switch (Kind)
             {
                 case Simulation.Steppers:
@@ -62,12 +62,8 @@ namespace alexnown.GameOfLife
         {
             var builder = new BlobBuilder(Allocator.Temp);
             ref var root = ref builder.ConstructRoot<WorldCellsData>();
-            var array0 = builder.Allocate(size, ref root.Array0);
+            builder.Allocate(size, ref root.Array0);
             builder.Allocate(size, ref root.Array1);
-            //for (int i = 0; i < size; i++)
-            //{
-            //    array0[i] = 0;
-            //}
             var blobAsset = builder.CreateBlobAssetReference<WorldCellsData>(Allocator.Persistent);
 
             builder.Dispose();
