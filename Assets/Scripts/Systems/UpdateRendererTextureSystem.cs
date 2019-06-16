@@ -16,21 +16,15 @@ namespace alexnown.GameOfLife
         {
             [NativeDisableContainerSafetyRestriction]
             public DynamicBuffer<CellColorElement> Colors;
-            public BlobAssetReference<WorldCellsData> CellsReference;
+            [ReadOnly]
+            public NativeArray<byte> CellStates;
             [WriteOnly]
             [NativeDisableParallelForRestriction]
             public NativeArray<byte> TargetTextureArray;
 
             public void Execute(int index)
             {
-                if (CellsReference.Value.ArrayIndex == 0)
-                    Process(ref CellsReference.Value.Array0, index);
-                else Process(ref CellsReference.Value.Array1, index);
-            }
-
-            private void Process(ref BlobArray<byte> cellsArray, int index)
-            {
-                byte cellState = cellsArray[index];
+                byte cellState = CellStates[index];
                 if (cellState == 0)
                 {
                     TargetTextureArray[3 * index] = 0;
@@ -74,12 +68,11 @@ namespace alexnown.GameOfLife
                     var job = new UpdateTexture
                     {
                         TargetTextureArray = listForDrawing,
-                        CellsReference = cells.Value,
+                        CellStates = cells.GetActiveCells(),
                         Colors = colors
                     }.Schedule(elements, 1024);
                     job.Complete();
                     CreatedTexture.Apply(false);
-                    _timer.Stop();
                     SimulationStatistics.UpdateTextureCounts++;
                     SimulationStatistics.UpdateTextureTotalTicks += _timer.ElapsedTicks;
                     _timer.Reset();

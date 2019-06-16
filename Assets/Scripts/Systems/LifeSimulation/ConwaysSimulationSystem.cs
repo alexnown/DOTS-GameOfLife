@@ -12,43 +12,35 @@ namespace alexnown.GameOfLife
         [BurstCompile]
         struct UpdateCells : IJobParallelFor
         {
-            [NativeSetThreadIndex]
-            public int ThreadIndex;
             [ReadOnly]
             public int Width;
             [ReadOnly]
             public int Length;
-            public BlobAssetReference<WorldCellsData> CellsData;
+            [ReadOnly]
+            public NativeArray<byte> CellStates;
+            [WriteOnly]
+            public NativeArray<byte> NextFrameCells;
 
             public void Execute(int index)
-            {
-                if (CellsData.Value.ArrayIndex == 0)
-                {
-                    Process(ref CellsData.Value.Array1, ref CellsData.Value.Array0, index);
-                }
-                else Process(ref CellsData.Value.Array0, ref CellsData.Value.Array1, index);
-            }
-
-            private void Process(ref BlobArray<byte> cellsArray, ref BlobArray<byte> nextFrameCells, int index)
             {
                 int posX = index % Width;
                 int posY = index / Width;
                 var neighbors = Neighbors.Calculate(posX, posY, Width, Length);
 
                 int sum = 0;
-                sum += cellsArray[neighbors.LeftUp];
-                sum += cellsArray[neighbors.Up];
-                sum += cellsArray[neighbors.RightUp];
-                sum += cellsArray[neighbors.Left];
-                sum += cellsArray[neighbors.Right];
-                sum += cellsArray[neighbors.LeftDown];
-                sum += cellsArray[neighbors.Down];
-                sum += cellsArray[neighbors.RightDown];
+                sum += CellStates[neighbors.LeftUp];
+                sum += CellStates[neighbors.Up];
+                sum += CellStates[neighbors.RightUp];
+                sum += CellStates[neighbors.Left];
+                sum += CellStates[neighbors.Right];
+                sum += CellStates[neighbors.LeftDown];
+                sum += CellStates[neighbors.Down];
+                sum += CellStates[neighbors.RightDown];
 
                 byte state = 0;
-                bool isAlive = sum == 3 || (sum == 2 && cellsArray[index] == 1);
+                bool isAlive = sum == 3 || (sum == 2 && CellStates[index] == 1);
                 if (isAlive) state = 1;
-                nextFrameCells[index] = state;
+                NextFrameCells[index] = state;
             }
         }
 
@@ -70,20 +62,26 @@ namespace alexnown.GameOfLife
             Entities.With(_cellWorlds).ForEach((ref WorldSize size, ref WorldCellsComponent cellsData) =>
             {
                 _timer.Start();
-                cellsData.Value.Value.ArrayIndex = (byte)((cellsData.Value.Value.ArrayIndex + 1) % 2);
-                int length = cellsData.Value.Value.Array0.Length;
+                byte currIndex = cellsData.Value.Value.ArrayIndex;
+                var cellArray = cellsData.GetCellsArray(currIndex);
+                currIndex = (byte) ((currIndex + 1)%2);
+                cellsData.Value.Value.ArrayIndex = currIndex;
+                var nextFrameCells = cellsData.GetCellsArray(currIndex);
+                int length = cellArray.Length;
                 var job = new UpdateCells
                 {
                     Width = size.Width,
                     Length = length,
-                    CellsData = cellsData.Value,
+                    CellStates = cellArray,
+                    NextFrameCells = nextFrameCells
+
                 }.Schedule(length, 1024);
                 job.Complete();
-                _timer.Stop();
                 SimulationStatistics.SimulationsCount++;
                 SimulationStatistics.SimulationTotalTicks += _timer.ElapsedTicks;
                 _timer.Reset();
             });
         }
+        
     }
 }
