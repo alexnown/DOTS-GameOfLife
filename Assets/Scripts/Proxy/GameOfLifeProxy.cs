@@ -58,17 +58,17 @@ namespace alexnown.GameOfLife
             (int)(Screen.width * ScreenResolutionMultiplier),
             (int)(Screen.height * ScreenResolutionMultiplier));
 
-        public unsafe BlobAssetReference<WorldCellsData> ConstructBlob(int size)
+        public BlobAssetReference<WorldCellsData> ConstructBlob(int size)
         {
-            var builder = new BlobBuilder(Allocator.Temp);
-            ref var root = ref builder.ConstructRoot<WorldCellsData>();
-            builder.Allocate(ref root.Array0, size);
-            builder.Allocate(ref root.Array1, size);
-            var blobAsset = builder.CreateBlobAssetReference<WorldCellsData>(Allocator.Persistent);
-
-            builder.Dispose();
-
-            return blobAsset;
+            using (var builder = new BlobBuilder(Allocator.Temp))
+            {
+                ref var root = ref builder.ConstructRoot<WorldCellsData>();
+                ref NativeArray<byte> array0 = ref builder.Allocate(ref root.Array0);
+                array0 = new NativeArray<byte>(size, Allocator.Persistent);
+                ref NativeArray<byte> array1 = ref builder.Allocate(ref root.Array1);
+                array1 = new NativeArray<byte>(size, Allocator.Persistent);
+                return builder.CreateBlobAssetReference<WorldCellsData>(Allocator.Persistent);
+            }
         }
     }
 }

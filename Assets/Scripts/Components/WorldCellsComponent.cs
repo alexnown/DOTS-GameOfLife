@@ -9,27 +9,14 @@ namespace alexnown
 
         public NativeArray<byte> GetActiveCells() => GetCellsArray(Value.Value.ArrayIndex);
 
-        public unsafe NativeArray<byte> GetCellsArray(byte arrayIndex)
-        {
-            if (arrayIndex == 0)
-            {
-                return NativeCollectionHelper.AsNativeArray(
-                    Value.Value.Array0.GetUnsafePtr(),
-                    Value.Value.Array0.Length);
-            }
-            else
-            {
-                return NativeCollectionHelper.AsNativeArray(
-                    Value.Value.Array1.GetUnsafePtr(),
-                    Value.Value.Array1.Length);
-            }
-        }
+        public NativeArray<byte> GetCellsArray(byte arrayIndex)
+            => arrayIndex == 0 ? Value.Value.Array0.Value : Value.Value.Array1.Value;
     }
 
     public struct WorldCellsData
     {
         public byte ArrayIndex;
-        public BlobArray<byte> Array0;
-        public BlobArray<byte> Array1;
+        public BlobPtr<NativeArray<byte>> Array0;
+        public BlobPtr<NativeArray<byte>> Array1;
     }
 }
