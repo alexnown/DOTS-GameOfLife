@@ -62,8 +62,8 @@ namespace alexnown.GameOfLife
         {
             var builder = new BlobBuilder(Allocator.Temp);
             ref var root = ref builder.ConstructRoot<WorldCellsData>();
-            builder.Allocate(size, ref root.Array0);
-            builder.Allocate(size, ref root.Array1);
+            builder.Allocate(ref root.Array0, size);
+            builder.Allocate(ref root.Array1, size);
             var blobAsset = builder.CreateBlobAssetReference<WorldCellsData>(Allocator.Persistent);
 
             builder.Dispose();

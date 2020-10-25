@@ -1,13 +1,12 @@
 ﻿using System.Diagnostics;
-using Unity.Burst;
 using Unity.Collections;
-using Unity.Collections.LowLevel.Unsafe;
 using Unity.Entities;
 using Unity.Jobs;
+using Unity.Burst;
 
 namespace alexnown.GameOfLife
 {
-    public class ConwaysSimulationSystem : ComponentSystem
+    public class ConwaysSimulationSystem : SystemBase
     {
         [BurstCompile]
         struct UpdateCells : IJobParallelFor
@@ -59,12 +58,12 @@ namespace alexnown.GameOfLife
 
         protected override void OnUpdate()
         {
-            Entities.With(_cellWorlds).ForEach((ref WorldSize size, ref WorldCellsComponent cellsData) =>
+            Entities.ForEach((ref WorldSize size, ref WorldCellsComponent cellsData) =>
             {
                 _timer.Start();
                 byte currIndex = cellsData.Value.Value.ArrayIndex;
                 var cellArray = cellsData.GetCellsArray(currIndex);
-                currIndex = (byte) ((currIndex + 1)%2);
+                currIndex = (byte)((currIndex + 1) % 2);
                 cellsData.Value.Value.ArrayIndex = currIndex;
                 var nextFrameCells = cellsData.GetCellsArray(currIndex);
                 int length = cellArray.Length;
@@ -80,8 +79,8 @@ namespace alexnown.GameOfLife
                 SimulationStatistics.SimulationsCount++;
                 SimulationStatistics.SimulationTotalTicks += _timer.ElapsedTicks;
                 _timer.Reset();
-            });
+            }).WithoutBurst().Run();
         }
-        
+
     }
 }

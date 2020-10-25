@@ -1,6 +1,4 @@
 ﻿using alexnown.GameOfLife;
-using Unity.Burst;
-using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 using Random = Unity.Mathematics.Random;
@@ -8,47 +6,13 @@ using Random = Unity.Mathematics.Random;
 namespace alexnown.EcsLife
 {
     [UpdateBefore(typeof(WorldSimulationSystemGroup))]
-    public class ApplySprayPointsToCells : ComponentSystem
+    public class ApplySprayPointsToCells : SystemBase
     {
-        [BurstCompile]
-        struct ProcessSprayPoints : IJobForEachWithEntity<SprayComponent, ScreenViewPosition>
-        {
-            public WorldSize Size;
-            public BlobAssetReference<WorldCellsData> CellsReference;
-            public void Execute(Entity entity, int index, [ReadOnly]ref SprayComponent spray, [ReadOnly]ref ScreenViewPosition pos)
-            {
-                var random = new Random(spray.Seed);
-                int points = (int)(spray.Intensity * math.PI * math.pow(spray.Radius, 2));
-                for (int i = 0; i < points; i++)
-                {
-                    double theta = random.NextDouble(1) * (math.PI * 2);
-                    double r = random.NextDouble(spray.Radius);
-                    //Transform the polar coordinate to cartesian (x,y)
-                    //and translate the center to the current mouse position
-                    int posX = (int)(Size.Width * pos.Value.x);
-                    int posY = (int)(Size.Height * pos.Value.y);
-                    int x = (int)(posX + math.cos(theta) * r);
-                    int y = (int)(posY + math.sin(theta) * r);
-                    bool inBounds = x >= 0 && x < Size.Width && y >= 0 && y < Size.Height;
-                    if (inBounds)
-                    {
-                        int cellIndex = y * Size.Width + x;
-                        if (CellsReference.Value.ArrayIndex == 0) CellsReference.Value.Array0[cellIndex] = 1;
-                        else CellsReference.Value.Array1[cellIndex] = 1;
-                    }
-                }
-            }
-        }
-
         private EntityQuery _sprayCommands;
         private EntityQuery _cellWorlds;
 
         protected override void OnCreate()
         {
-            base.OnCreate();
-            _sprayCommands = GetEntityQuery(
-                ComponentType.ReadOnly<SprayComponent>(),
-                ComponentType.ReadOnly<ScreenViewPosition>());
             RequireForUpdate(_sprayCommands);
             _cellWorlds = GetEntityQuery(
                 ComponentType.ReadOnly<WorldSize>(),
@@ -58,16 +22,35 @@ namespace alexnown.EcsLife
 
         protected override void OnUpdate()
         {
-            Entities.With(_cellWorlds).ForEach((ref WorldSize size, ref WorldCellsComponent cellsData) =>
-            {
-                var job = new ProcessSprayPoints
+            Entities.WithStoreEntityQueryInField(ref _sprayCommands)
+                .ForEach((in SprayComponent sprayComponent) =>
                 {
-                    Size = size,
-                    CellsReference = cellsData.Value
-                }.ScheduleSingle(_sprayCommands);
-                job.Complete();
-            });
-            PostUpdateCommands.DestroyEntity(_sprayCommands);
+                    var spray = sprayComponent;
+                    Entities.WithName("ApplySprays")
+                    .ForEach((ref WorldCellsComponent cells, in WorldSize size) =>
+                    {
+                        ref var cellData = ref cells.Value.Value;
+                        var array = cells.GetActiveCells();
+                        var random = new Random(spray.Seed);
+                        int points = (int)(spray.Intensity * math.PI * math.pow(spray.Radius, 2));
+                        var centerPos = spray.Position * new float2(size.Width, size.Height);
+                        for (int i = 0; i < points; i++)
+                        {
+                            float theta = random.NextFloat(math.PI * 2);
+                            float r = random.NextFloat(spray.Radius);
+                            math.sincos(theta, out float sin, out float cos);
+                            int2 pos = (int2)(centerPos + r * new float2(sin, cos));
+                            bool inBounds = pos.x >= 0 && pos.x < size.Width && pos.y >= 0 && pos.y < size.Height;
+                            if (inBounds)
+                            {
+                                int cellIndex = pos.y * size.Width + pos.x;
+                                array[cellIndex] = 1;
+                            }
+                        }
+                    }).ScheduleParallel();
+                }).WithoutBurst().Run();
+            EntityManager.DestroyEntity(_sprayCommands);
+
         }
     }
 }

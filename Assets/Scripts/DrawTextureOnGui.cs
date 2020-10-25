@@ -33,7 +33,7 @@ namespace alexnown.EcsLife
         private void Start()
         {
             //Application.targetFrameRate = 60;
-            _rendererSystem = World.Active.GetOrCreateSystem<UpdateRendererTextureSystem>();
+            _rendererSystem = World.DefaultGameObjectInjectionWorld.GetOrCreateSystem<UpdateRendererTextureSystem>();
         }
 
 

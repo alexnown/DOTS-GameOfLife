@@ -31,7 +31,5 @@ namespace alexnown
         public byte ArrayIndex;
         public BlobArray<byte> Array0;
         public BlobArray<byte> Array1;
-
-
     }
 }
