@@ -6,6 +6,7 @@ using Unity.Burst;
 
 namespace alexnown.GameOfLife
 {
+    [UpdateInGroup(typeof(WorldSimulationSystemGroup))]
     public class ConwaysSimulationSystem : SystemBase
     {
         [BurstCompile]
@@ -51,14 +52,13 @@ namespace alexnown.GameOfLife
             base.OnCreate();
             _cellWorlds = GetEntityQuery(
                 ComponentType.ReadOnly<IsConwaysSimulationTag>(),
-                ComponentType.ReadOnly<WorldCellsComponent>(),
-                ComponentType.ReadOnly<WorldSize>());
+                ComponentType.ReadOnly<WorldCellsComponent>());
             RequireForUpdate(_cellWorlds);
         }
 
         protected override void OnUpdate()
         {
-            Entities.ForEach((ref WorldSize size, ref WorldCellsComponent cellsData) =>
+            Entities.ForEach((ref WorldCellsComponent cellsData) =>
             {
                 _timer.Start();
                 byte currIndex = cellsData.Value.Value.ArrayIndex;
@@ -69,15 +69,13 @@ namespace alexnown.GameOfLife
                 int length = cellArray.Length;
                 var job = new UpdateCells
                 {
-                    Width = size.Width,
+                    Width = cellsData.Size.x,
                     Length = length,
                     CellStates = cellArray,
                     NextFrameCells = nextFrameCells
 
                 }.Schedule(length, 1024);
                 job.Complete();
-                SimulationStatistics.SimulationsCount++;
-                SimulationStatistics.SimulationTotalTicks += _timer.ElapsedTicks;
                 _timer.Reset();
             }).WithoutBurst().Run();
         }

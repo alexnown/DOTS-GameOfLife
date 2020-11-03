@@ -2,5 +2,6 @@
 
 namespace alexnown.GameOfLife
 {
+    [GenerateAuthoringComponent]
     public struct IsConwaysSimulationTag : IComponentData { }
 }

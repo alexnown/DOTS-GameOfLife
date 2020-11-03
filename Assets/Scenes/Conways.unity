@@ -43,7 +43,7 @@ RenderSettings:
 --- !u!157 &3
 LightmapSettings:
   m_ObjectHideFlags: 0
-  serializedVersion: 11
+  serializedVersion: 12
   m_GIWorkflowMode: 1
   m_GISettings:
     serializedVersion: 2
@@ -98,7 +98,8 @@ LightmapSettings:
     m_TrainingDataDestination: TrainingData
     m_LightProbeSampleCountMultiplier: 4
   m_LightingDataAsset: {fileID: 0}
-  m_UseShadowmask: 1
+  m_LightingSettings: {fileID: 4890085278179872738, guid: f3dc76302f903e444a5899049bcf5c88,
+    type: 2}
 --- !u!196 &4
 NavMeshSettings:
   serializedVersion: 2
@@ -118,6 +119,8 @@ NavMeshSettings:
     manualTileSize: 0
     tileSize: 256
     accuratePlacement: 0
+    maxJobWorkers: 0
+    preserveTilesOutsideBounds: 0
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
@@ -131,6 +134,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1916917503}
   - component: {fileID: 1916917504}
+  - component: {fileID: 1916917505}
   m_Layer: 0
   m_Name: DrawOnGui
   m_TagString: Untagged
@@ -164,7 +168,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6dfd582fb06d0094694b21643c4bbff2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  UpdateFpsInterval: 0.5
+  Texture: {fileID: 0}
+--- !u!114 &1916917505
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1916917502}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ea7d7495833204790ba1d3a8755397f8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ConversionMode: 1
 --- !u!1 &2032487818
 GameObject:
   m_ObjectHideFlags: 0
@@ -248,9 +265,11 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2087881543}
-  - component: {fileID: 2087881542}
   - component: {fileID: 2087881544}
   - component: {fileID: 2087881545}
+  - component: {fileID: 2087881546}
+  - component: {fileID: 2087881548}
+  - component: {fileID: 2087881542}
   m_Layer: 0
   m_Name: _GameOfLifeProxy_
   m_TagString: Untagged
@@ -267,18 +286,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 2087881541}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 858db5772d3998349bf9726b1eebaf8f, type: 3}
+  m_Script: {fileID: 11500000, guid: 0726f38c4081b9141bb970d6d5eb5c42, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  UseScreenResolution: 1
-  ScreenResolutionMultiplier: 1
-  TargetResolution:
-    x: 1920
-    y: 1080
-  Kind: 1
-  CellColors:
+  Values:
   - serializedVersion: 2
-    rgba: 34560
+    rgba: 0
+  - serializedVersion: 2
+    rgba: 32768
 --- !u!4 &2087881543
 Transform:
   m_ObjectHideFlags: 0
@@ -318,3 +333,32 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: af892e4287c1f436baf5a5063049521a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &2087881546
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2087881541}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d59acfc25f9557d4f897df95d9159795, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &2087881548
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2087881541}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ff54a0807c7f5664e84812d89a1f9588, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Size:
+    x: 0
+    y: 0
+  SizeDependsScreenResolution: 1
+  ScreenResolutionMultiplier: 1

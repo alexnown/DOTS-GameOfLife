@@ -1,10 +1,12 @@
 ﻿using Unity.Collections;
 using Unity.Entities;
+using Unity.Mathematics;
 
 namespace alexnown
 {
     public struct WorldCellsComponent : IComponentData
     {
+        public int2 Size;
         public BlobAssetReference<WorldCellsData> Value;
 
         public NativeArray<byte> GetActiveCells() => GetCellsArray(Value.Value.ArrayIndex);

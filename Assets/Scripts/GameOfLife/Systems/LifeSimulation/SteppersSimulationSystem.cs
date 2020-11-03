@@ -55,7 +55,7 @@ namespace alexnown.GameOfLife
                 }
                 NextFrameCells[index] = state;
             }
-            
+
 
             private static void IncreaseCounters(byte value, ref int old, ref int young)
             {
@@ -72,14 +72,13 @@ namespace alexnown.GameOfLife
             base.OnCreate();
             _cellWorlds = GetEntityQuery(
                 ComponentType.ReadOnly<IsSteppersSimulationTag>(),
-                ComponentType.ReadOnly<WorldCellsComponent>(),
-                ComponentType.ReadOnly<WorldSize>());
+                ComponentType.ReadOnly<WorldCellsComponent>());
             RequireForUpdate(_cellWorlds);
         }
 
         protected override void OnUpdate()
         {
-            Entities.With(_cellWorlds).ForEach((ref WorldSize size, ref WorldCellsComponent cellsData) =>
+            Entities.With(_cellWorlds).ForEach((ref WorldCellsComponent cellsData) =>
             {
                 _timer.Start();
                 byte currIndex = cellsData.Value.Value.ArrayIndex;
@@ -90,15 +89,13 @@ namespace alexnown.GameOfLife
                 int length = cellArray.Length;
                 var job = new UpdateCells
                 {
-                    Width = size.Width,
+                    Width = cellsData.Size.x,
                     Length = length,
                     CellStates = cellArray,
                     NextFrameCells = nextFrameCells
 
                 }.Schedule(length, 1024);
                 job.Complete();
-                SimulationStatistics.SimulationsCount++;
-                SimulationStatistics.SimulationTotalTicks += _timer.ElapsedTicks;
                 _timer.Reset();
             });
         }
