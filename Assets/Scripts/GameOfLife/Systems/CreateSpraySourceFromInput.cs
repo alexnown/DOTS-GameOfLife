@@ -3,7 +3,7 @@ using Unity.Mathematics;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
-namespace alexnown.GameOfLife
+namespace GameOfLife
 {
     [UpdateInGroup(typeof(InitializationSystemGroup))]
     public class CreateSpraySourceFromInput : SystemBase

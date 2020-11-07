@@ -1,6 +1,6 @@
 ﻿using Unity.Entities;
 
-namespace alexnown.GameOfLife
+namespace GameOfLife
 {
     [GenerateAuthoringComponent]
     public struct IsSteppersSimulationTag : IComponentData { }

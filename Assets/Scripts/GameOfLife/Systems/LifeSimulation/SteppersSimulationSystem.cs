@@ -4,7 +4,7 @@ using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 
-namespace alexnown.GameOfLife
+namespace GameOfLife
 {
     [UpdateInGroup(typeof(WorldSimulationSystemGroup))]
     public class SteppersSimulationSystem : ComponentSystem

@@ -2,7 +2,7 @@
 using Unity.Entities;
 using Unity.Mathematics;
 
-namespace alexnown
+namespace GameOfLife
 {
     public struct WorldCellsComponent : IComponentData
     {
@@ -21,4 +21,6 @@ namespace alexnown
         public BlobPtr<NativeArray<byte>> Array0;
         public BlobPtr<NativeArray<byte>> Array1;
     }
+
+
 }

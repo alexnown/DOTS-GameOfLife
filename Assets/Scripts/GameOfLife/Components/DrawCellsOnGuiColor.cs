@@ -1,7 +1,7 @@
 ﻿using Unity.Entities;
 using UnityEngine;
 
-namespace alexnown.GameOfLife
+namespace GameOfLife
 {
     [GenerateAuthoringComponent]
     public struct DrawCellsOnGuiColor : IBufferElementData

@@ -1,83 +1,62 @@
-﻿using System.Diagnostics;
-using Unity.Collections;
-using Unity.Entities;
+﻿using Unity.Entities;
 using Unity.Jobs;
-using Unity.Burst;
+using static GameOfLife.ConwaysWorldUtils;
+using Unity.Mathematics;
+using Unity.Collections.LowLevel.Unsafe;
+using System.Diagnostics;
 
-namespace alexnown.GameOfLife
+namespace GameOfLife
 {
     [UpdateInGroup(typeof(WorldSimulationSystemGroup))]
     public class ConwaysSimulationSystem : SystemBase
     {
-        [BurstCompile]
-        struct UpdateCells : IJobParallelFor
-        {
-            [ReadOnly]
-            public int Width;
-            [ReadOnly]
-            public int Length;
-            [ReadOnly]
-            public NativeArray<byte> CellStates;
-            [WriteOnly]
-            public NativeArray<byte> NextFrameCells;
-
-            public void Execute(int index)
-            {
-                int posX = index % Width;
-                int posY = index / Width;
-                var neighbors = Neighbors.Calculate(posX, posY, Width, Length);
-
-                int sum = 0;
-                sum += CellStates[neighbors.LeftUp];
-                sum += CellStates[neighbors.Up];
-                sum += CellStates[neighbors.RightUp];
-                sum += CellStates[neighbors.Left];
-                sum += CellStates[neighbors.Right];
-                sum += CellStates[neighbors.LeftDown];
-                sum += CellStates[neighbors.Down];
-                sum += CellStates[neighbors.RightDown];
-
-                byte state = 0;
-                bool isAlive = sum == 3 || (sum == 2 && CellStates[index] == 1);
-                if (isAlive) state = 1;
-                NextFrameCells[index] = state;
-            }
-        }
-
-        private EntityQuery _cellWorlds;
         private readonly Stopwatch _timer = new Stopwatch();
-
-        protected override void OnCreate()
-        {
-            base.OnCreate();
-            _cellWorlds = GetEntityQuery(
-                ComponentType.ReadOnly<IsConwaysSimulationTag>(),
-                ComponentType.ReadOnly<WorldCellsComponent>());
-            RequireForUpdate(_cellWorlds);
-        }
-
         protected override void OnUpdate()
         {
-            Entities.ForEach((ref WorldCellsComponent cellsData) =>
-            {
-                _timer.Start();
-                byte currIndex = cellsData.Value.Value.ArrayIndex;
-                var cellArray = cellsData.GetCellsArray(currIndex);
-                currIndex = (byte)((currIndex + 1) % 2);
-                cellsData.Value.Value.ArrayIndex = currIndex;
-                var nextFrameCells = cellsData.GetCellsArray(currIndex);
-                int length = cellArray.Length;
-                var job = new UpdateCells
+            Dependency.Complete();
+            Entities.WithAll<IsConwaysSimulationTag>()
+                .ForEach((Entity e, ref CellsInAreas cellsData) =>
                 {
-                    Width = cellsData.Size.x,
-                    Length = length,
-                    CellStates = cellArray,
-                    NextFrameCells = nextFrameCells
+                    ref var areas = ref cellsData.Areas.Value.ArrayPtr.Value;
+                    int cycles = 0;
+                    long totalTicks = 0;
+                    var settings = HasComponent<AdvancedSimulationSettings>(e)
+                    ? GetComponent<AdvancedSimulationSettings>(e)
+                    : new AdvancedSimulationSettings { MaxCyclesPerFrame = 1 };
+                    while (cycles++ < settings.MaxCyclesPerFrame)
+                    {
+                        _timer.Start();
+                        var job = new UpdateAreaCells_ManualShiftJob
+                        {
+                            CellStates = areas
+                        }.Schedule(areas.Length, 256, Dependency);
+                        var statesInt4 = areas.Reinterpret<int4>(UnsafeUtility.SizeOf<int>());
+                        var widthInArea4 = cellsData.Size.x / 16;
+                        job = new SetHorizontalSidesInAreasJob
+                        {
+                            Width = widthInArea4,
+                            CellStates = statesInt4
+                        }.Schedule(cellsData.Size.y / 3, 32, job);
+                        Dependency = new SetVerticalSidesInAreasJob
+                        {
+                            Width = widthInArea4,
+                            CellStates = statesInt4
+                        }.Schedule(widthInArea4, 32, job);
+                        Dependency.Complete();
+                        totalTicks += _timer.ElapsedTicks;
+                        _timer.Reset();
+                        if (settings.LimitationMs > 0 && totalTicks > settings.LimitationMs * 10000)
+                            break;
+                    }
+                    if (HasComponent<SimulationStatistic>(e))
+                    {
+                        var stats = GetComponent<SimulationStatistic>(e);
+                        stats.Age += cycles;
+                        stats.TotalMs += totalTicks / 10000f;
+                        SetComponent(e, stats);
+                    }
 
-                }.Schedule(length, 1024);
-                job.Complete();
-                _timer.Reset();
-            }).WithoutBurst().Run();
+                }).WithoutBurst().Run();
         }
 
     }

@@ -3,10 +3,11 @@ using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;
 
-namespace alexnown.GameOfLife
+namespace GameOfLife
 {
+
     [UpdateInGroup(typeof(InitializationSystemGroup))]
-    public class InitializeGameOfLifeWorldSystem : SystemBase
+    public class InitializeSteppersWorldSystem : SystemBase
     {
         private EntityQuery _initializeRequests;
         private EntityCommandBufferSystem _barrier;
@@ -21,12 +22,13 @@ namespace alexnown.GameOfLife
             var cb = _barrier.CreateCommandBuffer();
             var screenSize = new float2(Screen.width, Screen.height);
             Entities.WithStoreEntityQueryInField(ref _initializeRequests)
+                .WithAll<IsSteppersSimulationTag>()
                 .ForEach((Entity e, in InitializeGameOfLifeWorld init) =>
             {
                 var size = init.Size;
-                if (init.SizeDependsScreenResolution) size = (int2)(screenSize * init.ScreenResolutionMultiplier);
+                if (size.x <= 0) size.x = Screen.width;
+                if (size.y <= 0) size.y = Screen.height;
                 int elements = size.x * size.y;
-                if (elements <= 0) throw new System.ArgumentException($"Cells count={elements}, must be greater than 0.");
                 cb.AddComponent(e, new WorldCellsComponent
                 {
                     Size = size,

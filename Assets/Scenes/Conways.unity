@@ -270,6 +270,7 @@ GameObject:
   - component: {fileID: 2087881546}
   - component: {fileID: 2087881548}
   - component: {fileID: 2087881542}
+  - component: {fileID: 2087881547}
   m_Layer: 0
   m_Name: _GameOfLifeProxy_
   m_TagString: Untagged
@@ -345,6 +346,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d59acfc25f9557d4f897df95d9159795, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &2087881547
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2087881541}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4058d3e7055e13d45892812844c84e7a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Age: 0
+  TotalMs: 0
 --- !u!114 &2087881548
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -360,5 +375,3 @@ MonoBehaviour:
   Size:
     x: 0
     y: 0
-  SizeDependsScreenResolution: 1
-  ScreenResolutionMultiplier: 1

@@ -1,6 +1,6 @@
 ﻿using Unity.Entities;
 
-namespace alexnown.GameOfLife
+namespace GameOfLife
 {
     public class WorldSimulationSystemGroup : ComponentSystemGroup { }
 }

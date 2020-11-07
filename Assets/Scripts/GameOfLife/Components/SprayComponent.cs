@@ -1,7 +1,7 @@
 ﻿using Unity.Entities;
 using Unity.Mathematics;
 
-namespace alexnown.GameOfLife
+namespace GameOfLife
 {
     public struct SprayComponent : IComponentData
     {

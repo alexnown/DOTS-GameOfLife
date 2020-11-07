@@ -1,7 +1,7 @@
 ﻿using System;
 using UnityEngine;
 
-namespace alexnown.GameOfLife
+namespace GameOfLife
 {
     public class DrawTextureOnGui : MonoBehaviour
     {

@@ -1,13 +1,12 @@
 ﻿using Unity.Entities;
 using Unity.Mathematics;
+using UnityEngine;
 
-namespace alexnown.GameOfLife
+namespace GameOfLife
 {
     [GenerateAuthoringComponent]
     public struct InitializeGameOfLifeWorld : IComponentData
     {
         public int2 Size;
-        public bool SizeDependsScreenResolution;
-        public float ScreenResolutionMultiplier;
     }
 }

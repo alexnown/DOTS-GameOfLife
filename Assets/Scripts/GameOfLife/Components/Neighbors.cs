@@ -1,4 +1,4 @@
-﻿namespace alexnown.GameOfLife
+﻿namespace GameOfLife
 {
     struct Neighbors 
     {
