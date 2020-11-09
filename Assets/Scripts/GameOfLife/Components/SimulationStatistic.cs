@@ -6,6 +6,7 @@ namespace GameOfLife
     public struct SimulationStatistic : IComponentData
     {
         public int Age;
-        public float TotalMs;
+        public float SimulationTimeMs;
+        public float TotalTime;
     }
 }

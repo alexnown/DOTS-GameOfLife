@@ -1,5 +1,4 @@
-﻿using Unity.Collections;
-using Unity.Entities;
+﻿using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;
 
@@ -9,7 +8,6 @@ namespace GameOfLife
     [UpdateInGroup(typeof(InitializationSystemGroup))]
     public class InitializeSteppersWorldSystem : SystemBase
     {
-        private EntityQuery _initializeRequests;
         private EntityCommandBufferSystem _barrier;
 
         protected override void OnCreate()
@@ -20,35 +18,20 @@ namespace GameOfLife
         protected override void OnUpdate()
         {
             var cb = _barrier.CreateCommandBuffer();
-            var screenSize = new float2(Screen.width, Screen.height);
-            Entities.WithStoreEntityQueryInField(ref _initializeRequests)
-                .WithAll<IsSteppersSimulationTag>()
-                .ForEach((Entity e, in InitializeGameOfLifeWorld init) =>
-            {
-                var size = init.Size;
-                if (size.x <= 0) size.x = Screen.width;
-                if (size.y <= 0) size.y = Screen.height;
-                int elements = size.x * size.y;
-                cb.AddComponent(e, new WorldCellsComponent
+            Entities
+                .WithNone<GameOfLifeTexture>()
+                .WithAll<IsSteppersSimulation>()
+                .ForEach((Entity e, ref WorldSize world) =>
                 {
-                    Size = size,
-                    Value = ConstructBlob(elements)
-                });
-            }).WithoutBurst().Run();
-            cb.RemoveComponent(_initializeRequests, ComponentType.ReadOnly<InitializeGameOfLifeWorld>());
-            _barrier.AddJobHandleForProducer(Dependency);
-        }
-        private static BlobAssetReference<WorldCellsData> ConstructBlob(int size)
-        {
-            using (var builder = new BlobBuilder(Allocator.Temp))
-            {
-                ref var root = ref builder.ConstructRoot<WorldCellsData>();
-                ref NativeArray<byte> array0 = ref builder.Allocate(ref root.Array0);
-                array0 = new NativeArray<byte>(size, Allocator.Persistent);
-                ref NativeArray<byte> array1 = ref builder.Allocate(ref root.Array1);
-                array1 = new NativeArray<byte>(size, Allocator.Persistent);
-                return builder.CreateBlobAssetReference<WorldCellsData>(Allocator.Persistent);
-            }
+                    if (world.Size.x <= 0) world.Size.x = Screen.width;
+                    if (world.Size.y <= 0) world.Size.y = Screen.height;
+                    var texture = new Texture2D(world.Size.x, world.Size.y, TextureFormat.R8, false);
+                    texture.wrapMode = TextureWrapMode.Clamp;
+                    var array = texture.GetRawTextureData<int4>();
+                    for (int i = 0; i < array.Length; i++) array[i] = 0;
+                    texture.Apply();
+                    cb.AddComponent(e, new GameOfLifeTexture { Value = texture });
+                }).WithoutBurst().Run();
         }
     }
 }
