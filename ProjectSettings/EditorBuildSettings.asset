@@ -9,12 +9,21 @@ EditorBuildSettings:
     path: Assets/Scenes/ScenesList.unity
     guid: bb55dc7e1f783d64f9e3191c0fd2835f
   - enabled: 1
-    path: Assets/Scenes/Conways.unity
+    path: Assets/Scenes/Conways/Empty.unity
     guid: 247ffc9d61ff0b747a09d946f9d0ffed
   - enabled: 1
-    path: Assets/Scenes/ConwaysGun.unity
+    path: Assets/Scenes/Conways/2c5_Gun_p416.unity
     guid: 47980149a4ffef34790d4e9a83446680
   - enabled: 1
-    path: Assets/Scenes/Steppers.unity
+    path: Assets/Scenes/SteppersEmpty.unity
     guid: 3b3ba753f2fb11946aa67c054e1cef58
+  - enabled: 1
+    path: Assets/Scenes/Conways/LinePuffer.unity
+    guid: 8ccb30db63ce55c42ba5dc9173a256a6
+  - enabled: 1
+    path: Assets/Scenes/Conways/Oscillators.unity
+    guid: 31a84bfc8b099dc43afd62a09a5f74d6
+  - enabled: 1
+    path: Assets/Scenes/Conways/RakeFactory.unity
+    guid: 4f4b33e5fe653834292fb722904a7e2b
   m_configObjects: {}
