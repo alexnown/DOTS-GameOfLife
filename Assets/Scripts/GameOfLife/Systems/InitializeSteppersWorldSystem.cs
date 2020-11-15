@@ -4,7 +4,6 @@ using UnityEngine;
 
 namespace GameOfLife
 {
-
     [UpdateInGroup(typeof(InitializationSystemGroup))]
     public class InitializeSteppersWorldSystem : SystemBase
     {
@@ -30,7 +29,7 @@ namespace GameOfLife
                     var array = texture.GetRawTextureData<int4>();
                     for (int i = 0; i < array.Length; i++) array[i] = 0;
                     texture.Apply();
-                    cb.AddComponent(e, new GameOfLifeTexture { Value = texture });
+                    cb.AddComponent(e, new GameOfLifeTexture { Value = texture, IsCreated = true });
                 }).WithoutBurst().Run();
         }
     }

@@ -1,12 +1,13 @@
 ﻿using Unity.Entities;
-using Unity.Mathematics;
 using UnityEngine;
 
 namespace GameOfLife
 {
     [GenerateAuthoringComponent]
-    public class GameOfLifeTexture : IComponentData
+    public class GameOfLifeTexture : ISystemStateComponentData
     {
+        [HideInInspector]
+        public bool IsCreated;
         public Texture2D Value;
     }
 }

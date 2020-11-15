@@ -7,9 +7,9 @@ namespace GameOfLife
     public class ScenesLoader : MonoBehaviour
     {
         [SerializeField]
-        private GameObject _scenesListContainer;
+        private GameObject _scenesListContainer = null;
         [SerializeField]
-        private GameObject _closeBtnContainer;
+        private GameObject _closeBtnContainer = null;
 
         private void Start()
         {
