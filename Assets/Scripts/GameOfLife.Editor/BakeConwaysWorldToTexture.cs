@@ -19,38 +19,48 @@ namespace GameOfLife
 
         private string _gollyString;
         private string _path;
+        private string _pngName = $"Conways_{DateTime.Now.ToString("HH_mm_ss")}";
         private int2 _worldSize = new int2(1920, 1080);
+        private float2 _pivot = new float2(0.5f);
         private Vector2 ScrollPos;
 
         void OnGUI()
         {
-            _worldSize.x = EditorGUILayout.IntField("WorldWidth", _worldSize.x);
-            _worldSize.y = EditorGUILayout.IntField("WorldHeight", _worldSize.y);
-            GUILayout.Label("Golly string:", EditorStyles.boldLabel);
-
-            ScrollPos = EditorGUILayout.BeginScrollView(ScrollPos, GUILayout.Height(300));
-            _gollyString = EditorGUILayout.TextArea(_gollyString, GUILayout.ExpandHeight(true));
-            EditorGUILayout.EndScrollView();
-            GUILayout.Space(30);
+            GUILayout.Space(10);
             EditorGUILayout.BeginHorizontal();
             bool pathCorrect = !string.IsNullOrEmpty(_path) && Directory.Exists(_path);
             if (!pathCorrect) _path = GetDefaultSavingPath();
-            EditorGUILayout.LabelField($"Saving directory: {_path}");
-            if (GUILayout.Button("Select"))
+            if (GUILayout.Button("Change", GUILayout.Width(150)))
             {
                 _path = EditorUtility.OpenFolderPanel("Select folder:", _path, "");
                 PlayerPrefs.SetString(PathKey, _path);
             }
-
+            EditorGUILayout.LabelField($"Saving directory: {_path}");
             EditorGUILayout.EndHorizontal();
             GUILayout.Space(10);
-            if (GUILayout.Button("Generate", GUILayout.Width(100)))
+            GUILayout.Label("Golly string:", EditorStyles.boldLabel);
+            ScrollPos = EditorGUILayout.BeginScrollView(ScrollPos, GUILayout.Height(150));
+            _gollyString = EditorGUILayout.TextArea(_gollyString, GUILayout.ExpandHeight(true));
+            EditorGUILayout.EndScrollView();
+            GUILayout.Space(10);
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("WorldSize:", GUILayout.Width(150));
+            _worldSize.x = EditorGUILayout.IntField(_worldSize.x, GUILayout.Width(150));
+            _worldSize.y = EditorGUILayout.IntField(_worldSize.y, GUILayout.Width(150));
+            GUILayout.FlexibleSpace();
+            EditorGUILayout.LabelField("Pivot:", GUILayout.Width(150));
+            _pivot.x = EditorGUILayout.FloatField(_pivot.x, GUILayout.Width(150));
+            _pivot.y = EditorGUILayout.FloatField(_pivot.y, GUILayout.Width(150));
+            EditorGUILayout.EndHorizontal();
+            GUILayout.Space(10);
+            _pngName = EditorGUILayout.TextField("TextureName:", _pngName);
+            if (GUILayout.Button("Bake", GUILayout.Width(140)))
             {
                 var sizeInDemandedAreas = (int2)math.ceil(_worldSize / new float2(16, 3));
                 _worldSize = sizeInDemandedAreas * new int2(16, 3);
                 var texture = GenerateTextureByGollyString(_worldSize, _gollyString);
                 byte[] _bytes = texture.EncodeToPNG();
-                var fullPath = $"{_path}/Conways_{DateTime.Now.ToString("HH_mm_ss")}.png";
+                var fullPath = $"{_path}/{_pngName}.png";
                 System.IO.File.WriteAllBytes(fullPath, _bytes);
                 AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
                 var shortPath = fullPath.Substring(fullPath.IndexOf("Assets/"));
@@ -82,8 +92,8 @@ namespace GameOfLife
             var texture = new Texture2D(worldSize.x / 4, worldSize.y / 3, TextureFormat.RGBA32, false);
             var rawData = texture.GetRawTextureData<int4>();
             for (int i = 0; i < rawData.Length; i++) rawData[i] = 0;
-            int2 cellPos = (worldSize - gollySize) / 2;
-            cellPos.y = worldSize.y - cellPos.y;
+            var diff = worldSize - gollySize;
+            int2 cellPos = (int2)new float2(_pivot.x * diff.x, worldSize.y - (1 - _pivot.y) * diff.y - 1);
             int startPoxX = cellPos.x;
             int prevInt = 0;
             while (ParseGollyString(texture, golly, index, startPoxX, ref cellPos, ref prevInt)) { index++; }
