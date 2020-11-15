@@ -161,7 +161,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 15, y: -15}
   m_SizeDelta: {x: 400, y: 180}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &686035359
@@ -265,6 +265,7 @@ GameObject:
   - component: {fileID: 1596346585}
   - component: {fileID: 1596346587}
   - component: {fileID: 1596346588}
+  - component: {fileID: 1596346589}
   m_Layer: 5
   m_Name: RawImage
   m_TagString: Untagged
@@ -352,6 +353,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ConversionMode: 1
+--- !u!114 &1596346589
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1596346583}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 663f41613dffc9e4f953b4f8919588eb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1601873276
 GameObject:
   m_ObjectHideFlags: 0
@@ -538,7 +551,6 @@ GameObject:
   - component: {fileID: 2087881544}
   - component: {fileID: 2087881545}
   - component: {fileID: 2087881547}
-  - component: {fileID: 2087881542}
   - component: {fileID: 2087881548}
   - component: {fileID: 2087881546}
   m_Layer: 0
@@ -548,20 +560,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &2087881542
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2087881541}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3cc7e58a6b0f7044c940cc47638bb41f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  MaxCyclesPerFrame: 8
-  LimitationMs: 12
 --- !u!4 &2087881543
 Transform:
   m_ObjectHideFlags: 0

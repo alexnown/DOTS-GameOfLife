@@ -6,6 +6,15 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/Scenes/ScenesList.unity
+    guid: bb55dc7e1f783d64f9e3191c0fd2835f
+  - enabled: 1
     path: Assets/Scenes/Conways.unity
     guid: 247ffc9d61ff0b747a09d946f9d0ffed
+  - enabled: 1
+    path: Assets/Scenes/ConwaysGun.unity
+    guid: 47980149a4ffef34790d4e9a83446680
+  - enabled: 1
+    path: Assets/Scenes/Steppers.unity
+    guid: 3b3ba753f2fb11946aa67c054e1cef58
   m_configObjects: {}
