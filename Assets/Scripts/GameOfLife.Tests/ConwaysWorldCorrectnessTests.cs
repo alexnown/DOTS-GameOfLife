@@ -21,6 +21,14 @@ namespace GameOfLife
             Tuple.Create(0b1000000110001100000000,0b100000010001110000000), // Glider1
         };
 
+        private int4x3[] OscillatorSequence = new[]
+        {
+            new int4x3(new int4(0, 2637952, 2162688, 0), new int4(1089792, 2130432, 2138624, 4228096), new int4(0, 541312, 66048, 0)),
+            new int4x3(new int4(0, 2637952, 2162688, 0), new int4(1089792, 2146816, 2204160, 4228096), new int4(0, 541312, 66048, 0)),
+            new int4x3(new int4(0, 2637952, 2162688, 0), new int4(1089792, 2671232, 2204160, 4228096), new int4(0, 541312, 66048, 0)),
+            new int4x3(new int4(0, 2637952, 2162688, 0), new int4(1089792, 2654848, 2138624, 4228096), new int4(0, 541312, 66048, 0))
+        };
+
         private NativeArray<int> InitializeSourceStatesArray()
         {
             var states = new NativeArray<int>(ConwaysUpdateResults.Length, Allocator.TempJob);
@@ -153,5 +161,71 @@ namespace GameOfLife
                 else Assert.AreEqual(0, areas[i]);
             }
         }
+
+        [Test]
+        public void UnpackInConwaysWorldCorrectness()
+        {
+            var areasInt4 = UnpackToConwaysWorld(OscillatorSequence[0]);
+            Assert.AreEqual(new int4(67108864, 136859776, 161548288, 268435456), areasInt4[0]);
+            Assert.AreEqual(new int4(1089792, 170033674, 673489512, 4359168), areasInt4[1]);
+            Assert.AreEqual(new int4(4, 545416, 8456713, 16), areasInt4[2]);
+            areasInt4.Dispose();
+        }
+
+        [Test]
+        public void OscillatorInConwaysWorld()
+        {
+            var areasInt4 = UnpackToConwaysWorld(OscillatorSequence[0]);
+            var areas = areasInt4.Reinterpret<int>(UnsafeUtility.SizeOf<int4>());
+            new UpdateAreaCells_ManualShiftJob { CellStates = areas }.Run(areas.Length);
+            new SetHorizontalSidesInAreasJob { Width = 1, CellStates = areasInt4 }.Run(areasInt4.Length);
+            new SetVerticalSidesInAreasJob { Width = 1, CellStates = areasInt4 }.Run(1);
+
+            var oscillatorNextStepAreas = UnpackToConwaysWorld(OscillatorSequence[1]);
+            Assert.AreEqual(oscillatorNextStepAreas[0], areasInt4[0]);
+            Assert.AreEqual(oscillatorNextStepAreas[1], areasInt4[1]);
+            Assert.AreEqual(oscillatorNextStepAreas[2], areasInt4[2]);
+            oscillatorNextStepAreas.Dispose();
+
+            new UpdateAreaCells_ManualShiftJob { CellStates = areas }.Run(areas.Length);
+            new SetHorizontalSidesInAreasJob { Width = 1, CellStates = areasInt4 }.Run(areasInt4.Length);
+            new SetVerticalSidesInAreasJob { Width = 1, CellStates = areasInt4 }.Run(1);
+            oscillatorNextStepAreas = UnpackToConwaysWorld(OscillatorSequence[2]);
+            Assert.AreEqual(oscillatorNextStepAreas[0], areasInt4[0]);
+            Assert.AreEqual(oscillatorNextStepAreas[1], areasInt4[1]);
+            Assert.AreEqual(oscillatorNextStepAreas[2], areasInt4[2]);
+            oscillatorNextStepAreas.Dispose();
+
+            new UpdateAreaCells_ManualShiftJob { CellStates = areas }.Run(areas.Length);
+            new SetHorizontalSidesInAreasJob { Width = 1, CellStates = areasInt4 }.Run(areasInt4.Length);
+            new SetVerticalSidesInAreasJob { Width = 1, CellStates = areasInt4 }.Run(1);
+            oscillatorNextStepAreas = UnpackToConwaysWorld(OscillatorSequence[3]);
+            Assert.AreEqual(oscillatorNextStepAreas[0], areasInt4[0]);
+            Assert.AreEqual(oscillatorNextStepAreas[1], areasInt4[1]);
+            Assert.AreEqual(oscillatorNextStepAreas[2], areasInt4[2]);
+            oscillatorNextStepAreas.Dispose();
+
+            new UpdateAreaCells_ManualShiftJob { CellStates = areas }.Run(areas.Length);
+            new SetHorizontalSidesInAreasJob { Width = 1, CellStates = areasInt4 }.Run(areasInt4.Length);
+            new SetVerticalSidesInAreasJob { Width = 1, CellStates = areasInt4 }.Run(1);
+            oscillatorNextStepAreas = UnpackToConwaysWorld(OscillatorSequence[0]);
+            Assert.AreEqual(oscillatorNextStepAreas[0], areasInt4[0]);
+            Assert.AreEqual(oscillatorNextStepAreas[1], areasInt4[1]);
+            Assert.AreEqual(oscillatorNextStepAreas[2], areasInt4[2]);
+            oscillatorNextStepAreas.Dispose();
+            areasInt4.Dispose();
+        }
+
+        private NativeArray<int4> UnpackToConwaysWorld(int4x3 areaForm)
+        {
+            var areas = new NativeArray<int4>(3, Allocator.TempJob);
+            areas[0] = areaForm.c0;
+            areas[1] = areaForm.c1;
+            areas[2] = areaForm.c2;
+            new SetHorizontalSidesInAreasJob { Width = 1, CellStates = areas }.Run(areas.Length);
+            new SetVerticalSidesInAreasJob { Width = 1, CellStates = areas }.Run(1);
+            return areas;
+        }
+
     }
 }
