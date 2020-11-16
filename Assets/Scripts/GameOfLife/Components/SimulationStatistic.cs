@@ -7,6 +7,5 @@ namespace GameOfLife
     {
         public int Age;
         public float SimulationTimeMs;
-        public float TotalTime;
     }
 }

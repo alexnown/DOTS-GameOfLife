@@ -7,7 +7,7 @@ namespace GameOfLife
     {
         public PeriodicalUpdateViewsSystemGroup()
         {
-            FixedRateManager = new FixedRateUtils.FixedRateCatchUpManager(0.5f);
+            FixedRateManager = new FixedRateUtils.FixedRateCatchUpManager(0.8f);
         }
     }
 }

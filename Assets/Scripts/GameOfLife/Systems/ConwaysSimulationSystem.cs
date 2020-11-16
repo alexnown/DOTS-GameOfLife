@@ -13,7 +13,6 @@ namespace GameOfLife
         protected override void OnUpdate()
         {
             Dependency.Complete();
-            var dt = Time.DeltaTime;
             Entities.WithAll<IsConwaysSimulation>()
                 .ForEach((Entity e, GameOfLifeTexture texture, in WorldSize world) =>
                 {
@@ -54,7 +53,6 @@ namespace GameOfLife
                         var stats = GetComponent<SimulationStatistic>(e);
                         stats.Age += cycles;
                         stats.SimulationTimeMs += totalTicks / 10000f;
-                        stats.TotalTime += dt;
                         SetComponent(e, stats);
                     }
                 }).WithoutBurst().Run();

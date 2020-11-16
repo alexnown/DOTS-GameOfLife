@@ -11,23 +11,29 @@ namespace GameOfLife
     {
         protected override void OnUpdate()
         {
-            Entities.WithAll<SimulationStatisticView>()
-                .ForEach((Text textView, ref SimulationStatisticView view) =>
+            var time = (float)Time.ElapsedTime;
+
+            SimulationStatistic statistic = default;
+            int2 size = default;
+            Entities.ForEach((in SimulationStatistic simulationStats, in WorldSize world) =>
+            {
+                statistic = simulationStats;
+                size = world.Size;
+            }).Run();
+            Entities.ForEach((Text textView, ref SimulationStatisticView view) =>
+            {
+                var ageDiff = statistic.Age - view.Age;
+                var timeDiff = time - view.PrevTime;
+                view.Age = statistic.Age;
+                view.PrevTime = time;
+                if (ageDiff > 0 && timeDiff > 0)
                 {
-                    SimulationStatistic statistic = default;
-                    int2 size = default;
-                    Entities.ForEach((in SimulationStatistic simulationStats, in WorldSize world) =>
-                    {
-                        statistic = simulationStats;
-                        size = world.Size;
-                    }).Run();
-                    if (statistic.Age > 0)
-                    {
-                        var cellsCount = FormatCellsCount(size.x * size.y);
-                        textView.text = $"Cells: {cellsCount}    Cores: {UnityEngine.SystemInfo.processorCount}\nAge: {statistic.Age}\nUpdate: {(statistic.SimulationTimeMs / statistic.Age).ToString("f1")} ms\nSpeed: {Math.Round(statistic.Age / statistic.TotalTime)}/s";
-                    }
-                    else textView.text = string.Empty;
-                }).WithoutBurst().Run();
+                    var cellsCount = FormatCellsCount(size.x * size.y);
+                    textView.text = $"Cells: {cellsCount}\nUpdate: {(statistic.SimulationTimeMs / statistic.Age).ToString("f1")} ms\nAge: {statistic.Age}\nSpeed: {Math.Round(ageDiff / timeDiff)}/s";
+                }
+                else textView.text = string.Empty;
+            }).WithoutBurst().Run();
+
         }
 
         private static string FormatCellsCount(int count)
